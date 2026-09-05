@@ -8,7 +8,7 @@ site crosses a critical flood-proximity or flow-velocity threshold.
 Credentials are read from environment variables (a `.env` file is loaded
 automatically if `python-dotenv` is installed):
 
-    TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
+    TELEGRAM_BOT_TOKEN=8827096340:AAG0_PSFr27scqu5B9YV72ZAcAT3xQYPwx8
     TWILIO_ACCOUNT_SID=ACxxxxxxxx
     TWILIO_AUTH_TOKEN=xxxxxxxx
     TWILIO_FROM_NUMBER=+15551234567
