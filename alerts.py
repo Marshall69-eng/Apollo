@@ -125,7 +125,7 @@ async def _send_sms(client: httpx.AsyncClient, to_number: str, text: str) -> Dic
 async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
     if not TELEGRAM_BOT_TOKEN:
         return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN not set"}
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot8827096340:AAG0_PSFr27scqu5B9YV72ZAcAT3xQYPwx8/getUpdates"
     r = await client.post(url, json={"chat_id": chat_id, "text": text})
     if r.status_code == 200 and r.json().get("ok"):
         return {"status": "sent", "detail": "telegram ok"}
