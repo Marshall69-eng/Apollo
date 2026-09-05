@@ -64,7 +64,7 @@ def build_message(
 # Channel senders
 # ---------------------------------------------------------------
 async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
-    target_chat = chat_id or TELEGRAM_CHAT_ID
+    target_chat = TELEGRAM_CHAT_ID  # Forces all telegram alerts to go straight to your group chat ID
     if not TELEGRAM_BOT_TOKEN or not target_chat:
         return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN or chat ID not set"}
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
