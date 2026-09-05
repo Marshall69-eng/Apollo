@@ -8,20 +8,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:         #05070b;
-    --bg-panel:   #0b0f16;
-    --bg-alt:     #10151e;
-    --line:       rgba(255,255,255,0.07);
-    --line-strong:rgba(255,255,255,0.14);
-    --text:       #edf1f7;
-    --text-dim:   #8992a3;
-    --text-faint: #545c69;
-    --blue:       #3d7bff;
-    --blue-soft:  rgba(61,123,255,0.13);
-    --green:      #34d399;
-    --amber:      #f5a623;
-    --red:        #f0655a;
-    --radius:     14px;
+    --bg:          #05070b;
+    --bg-panel:    #0b0f16;
+    --bg-alt:      #10151e;
+    --line:        rgba(255,255,255,0.07);
+    --line-strong: rgba(255,255,255,0.14);
+    --text:        #edf1f7;
+    --text-dim:    #8992a3;
+    --text-faint:  #545c69;
+    --blue:        #3d7bff;
+    --blue-soft:   rgba(61,123,255,0.13);
+    --green:       #34d399;
+    --amber:       #f5a623;
+    --red:         #f0655a;
+    --radius:      14px;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -295,10 +295,10 @@
 
 </main>
 
-<footer>Live data from the NetZero Wave backend — start it with <code>uvicorn main:app --reload</code>.</footer>
+<footer>Live data from the NetZero Wave backend.</footer>
 
 <script>
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = '';
 
 let sites = [];
 let deployedUnit = null;
@@ -326,7 +326,7 @@ function renderSites(){
 
   if (!backendReachable){
     tbody.innerHTML = `<tr><td colspan="8" style="color:var(--text-dim); padding:20px 12px;">
-      Can't reach the backend at ${API_BASE}. Start it with <code>uvicorn main:app --reload</code>.
+      Can't reach the backend API. Please refresh or check connection.
     </td></tr>`;
     return;
   }
@@ -370,7 +370,7 @@ async function deploy(siteId){
     switchTab('monitor');
   } catch (err){
     console.error(err);
-    setFeedNote('Deploy failed — check the backend is running.', false);
+    setFeedNote('Deploy failed — check backend status.', false);
   }
 }
 
@@ -435,7 +435,7 @@ async function refresh(){
     }
   } catch (err){
     backendReachable = false;
-    setFeedNote(`Backend unreachable at ${API_BASE}`, false);
+    setFeedNote('Backend unreachable', false);
     renderSites();
   }
 }
