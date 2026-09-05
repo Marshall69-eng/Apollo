@@ -29,30 +29,14 @@ from datetime import datetime, timezone
 from typing import List
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
-
-from fastapi import FastAPI
-from fastapi.responses import FileResponse  # 1. Add this import
-
-app = FastAPI(title="NetZero Wave API")
-
-# 2. Add this route right here at the top
-@app.get("/")
-def read_root():
-    return FileResponse("index.html")
-
-# 3. Your other existing routes (/api/sites, /api/units, etc.) go below this line...
 
 DB_PATH = "storm_baler.db"
 
 # ---------------------------------------------------------------
 # Scoring model — mirrors the frontend prototype's weights/curve.
-# Tune these to match your paper's actual methodology; they are
-# reasonable placeholders, not derived from your source material.
 # ---------------------------------------------------------------
 WEIGHTS = {"flow": 0.30, "debris": 0.30, "flood": 0.25, "solar": 0.15}
 
@@ -91,8 +75,7 @@ def alert_level(flow: float, flood: float) -> str:
 
 
 # ---------------------------------------------------------------
-# Seed data — same five candidate sites as the frontend demo,
-# so scores/ranking line up with what you've already shown.
+# Seed data
 # ---------------------------------------------------------------
 SEED_SITES = [
     ("S1", "Marikina River — Tumana Bridge", 1.9, 58, 72, 80),
@@ -181,9 +164,7 @@ class Unit(BaseModel):
 
 
 # ---------------------------------------------------------------
-# Background sensor simulation — the only place touching fake
-# data. Swap this out for real buoy ingestion when hardware is
-# ready; every route below just reads whatever is in the DB.
+# Background sensor simulation
 # ---------------------------------------------------------------
 async def simulate_tick() -> None:
     while True:
@@ -230,11 +211,18 @@ async def lifespan(app: FastAPI):
     task.cancel()
 
 
+# ---------------------------------------------------------------
+# App Initialization & Root Route for Frontend HTML
+# ---------------------------------------------------------------
 app = FastAPI(title="NetZero Wave API", lifespan=lifespan)
+
+@app.get("/")
+def read_root():
+    return FileResponse("index.html")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # fine for a local prototype; scope this down before deploying
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -254,7 +242,7 @@ def _unit_response(u: sqlite3.Row, site_name: str, flow: float, flood: float) ->
 
 
 # ---------------------------------------------------------------
-# Routes
+# API Routes
 # ---------------------------------------------------------------
 @app.get("/api/sites", response_model=List[Site])
 def list_sites():
