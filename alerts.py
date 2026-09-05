@@ -13,6 +13,11 @@ automatically if `python-dotenv` is installed):
     TWILIO_AUTH_TOKEN=xxxxxxxx
     TWILIO_FROM_NUMBER=+15551234567
     GENERIC_WEBHOOK_URL=https://hooks.example.org/drrmo   (optional)
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+VONAGE_API_KEY = os.getenv("VONAGE_API_KEY", "").strip()
+VONAGE_API_SECRET = os.getenv("VONAGE_API_SECRET", "").strip()
+VONAGE_FROM_NUMBER = os.getenv("VONAGE_FROM_NUMBER", "").strip()
+GENERIC_WEBHOOK_URL = os.getenv("GENERIC_WEBHOOK_URL", "").strip()
 
 If a channel has no credentials configured the dispatcher runs in
 DRY-RUN mode: the alert is still recorded and shown in the dashboard,
@@ -25,8 +30,15 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List
-
+def channel_status() -> Dict[str, bool]:
+    """Which channels have real credentials wired up."""
+    return {
+        "telegram": bool(TELEGRAM_BOT_TOKEN),
+        "sms": bool(VONAGE_API_KEY and VONAGE_API_SECRET and VONAGE_FROM_NUMBER),
+        "webhook": bool(GENERIC_WEBHOOK_URL),
+    }
 import httpx
+
 
 try:  # optional convenience
     from dotenv import load_dotenv
@@ -85,6 +97,31 @@ def build_message(
 # ---------------------------------------------------------------
 # Channel senders
 # ---------------------------------------------------------------
+
+async def _send_sms(client: httpx.AsyncClient, to_number: str, text: str) -> Dict[str, Any]:
+    if not (VONAGE_API_KEY and VONAGE_API_SECRET and VONAGE_FROM_NUMBER):
+        return {"status": "simulated", "detail": "Vonage credentials not set"}
+    
+    url = "https://rest.nexmo.com/sms/json"
+    payload = {
+        "api_key": VONAGE_API_KEY,
+        "api_secret": VONAGE_API_SECRET,
+        "to": to_number,
+        "from": VONAGE_FROM_NUMBER,
+        "text": text[:1500],
+    }
+    
+    r = await client.post(url, json=payload)
+    if r.status_code == 200:
+        data = r.json()
+        messages = data.get("messages", [])
+        if messages and messages[0].get("status") == "0":
+            return {"status": "sent", "detail": f"vonage msg id {messages[0].get('message-id', '')}"}
+        else:
+            err = messages[0].get("error-text", "unknown error") if messages else "no message block"
+            return {"status": "failed", "detail": f"vonage error: {err}"}
+            
+    return {"status": "failed", "detail": f"vonage {r.status_code}: {r.text[:180]}"}
 async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
     if not TELEGRAM_BOT_TOKEN:
         return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN not set"}
