@@ -32,6 +32,21 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+
+from fastapi import FastAPI
+from fastapi.responses import FileResponse  # 1. Add this import
+
+app = FastAPI(title="NetZero Wave API")
+
+# 2. Add this route right here at the top
+@app.get("/")
+def read_root():
+    return FileResponse("index.html")
+
+# 3. Your other existing routes (/api/sites, /api/units, etc.) go below this line...
+
 DB_PATH = "storm_baler.db"
 
 # ---------------------------------------------------------------
