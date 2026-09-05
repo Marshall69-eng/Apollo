@@ -24,31 +24,6 @@ DRY-RUN mode: the alert is still recorded and shown in the dashboard,
 with delivery status "simulated" instead of "sent". That keeps the demo
 fully functional without a paid Twilio account or a live bot token.
 """
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-1004369497154").strip()
-```[cite: 3]
-
----
-
-### 2. Update the `_send_telegram` Function
-Find the `_send_telegram` block around **Lines 70–76**:
-```python
-async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
-    if not TELEGRAM_BOT_TOKEN:
-        return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN not set"}
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    r = await client.post(url, json={"chat_id": chat_id, "text": text})
-```[cite: 3]
-
-Replace those lines with this:
-```python
-async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
-    target_chat = chat_id or TELEGRAM_CHAT_ID
-    if not TELEGRAM_BOT_TOKEN or not target_chat:
-        return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN or chat ID not set"}
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    r = await client.post(url, json={"chat_id": target_chat, "text": text})
-```[cite: 3]
 
 from __future__ import annotations
 
@@ -78,9 +53,34 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
 TWILIO_FROM_NUMBER = os.getenv("TWILIO_FROM_NUMBER", "").strip()
 GENERIC_WEBHOOK_URL = os.getenv("GENERIC_WEBHOOK_URL", "").strip()
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-1004369497154").strip()
 
 TIMEOUT = httpx.Timeout(10.0)
 
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-1004369497154").strip()
+```[cite: 3]
+
+---
+
+### 2. Update the `_send_telegram` Function
+Find the `_send_telegram` block around **Lines 70–76**:
+```python
+async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
+    if not TELEGRAM_BOT_TOKEN:
+        return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN not set"}
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    r = await client.post(url, json={"chat_id": chat_id, "text": text})
+```[cite: 3]
+
+Replace those lines with this:
+```python
+async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
+    target_chat = chat_id or TELEGRAM_CHAT_ID
+    if not TELEGRAM_BOT_TOKEN or not target_chat:
+        return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN or chat ID not set"}
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    r = await client.post(url, json={"chat_id": target_chat, "text": text})
+```[cite: 3]
 
 def channel_status() -> Dict[str, bool]:
     """Which channels have real credentials wired up."""
