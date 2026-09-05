@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetZero Wave</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:         #05070b;
+    --bg-panel:   #0b0f16;
+    --bg-alt:     #10151e;
+    --line:       rgba(255,255,255,0.07);
+    --line-strong:rgba(255,255,255,0.14);
+    --text:       #edf1f7;
+    --text-dim:   #8992a3;
+    --text-faint: #545c69;
+    --blue:       #3d7bff;
+    --blue-soft:  rgba(61,123,255,0.13);
+    --green:      #34d399;
+    --amber:      #f5a623;
+    --red:        #f0655a;
+    --radius:     14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:36px 40px 60px;
+  }
+  .num{ font-variant-numeric:tabular-nums; }
+
+  /* ---------- header ---------- */
+  header.top{ max-width:1180px; margin:0 auto; }
+  .brand-row{ display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand svg{ flex:none; }
+  .brand .wordmark{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:19px; letter-spacing:-0.01em; }
+  .tagline{ color:var(--text-dim); font-size:13.5px; margin:8px 0 0; max-width:520px; line-height:1.5; }
+
+  nav.tabs{ display:flex; gap:26px; }
+  nav.tabs button{
+    background:none; border:none; color:var(--text-dim); cursor:pointer;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
+    padding:9px 1px; position:relative;
+  }
+  nav.tabs button.active{ color:var(--text); }
+  nav.tabs button.active::after{
+    content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px;
+    background:var(--blue); border-radius:2px;
+  }
+  nav.tabs button:not(.active):hover{ color:var(--text); }
+
+  .wave-divider{ display:block; width:100%; height:28px; margin:22px 0 30px; opacity:0.5; }
+
+  main{ max-width:1180px; margin:0 auto; }
+  .view{ display:none; }
+  .view.active{ display:block; animation:fade .2s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  /* ---------- panels ---------- */
+  .panel{ background:var(--bg-panel); border-radius:var(--radius); padding:26px 28px; }
+  .panel h2{ font-size:14.5px; font-weight:600; margin:0 0 4px; }
+  .panel .panel-sub{ color:var(--text-dim); font-size:12.5px; margin:0 0 18px; }
+
+  .siting-grid{ display:grid; grid-template-columns:1.25fr 0.75fr; gap:20px; align-items:start; }
+  @media (max-width: 980px){ .siting-grid{ grid-template-columns:1fr; } }
+
+  /* ---------- sites table ---------- */
+  table.sites{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  table.sites th{
+    text-align:left; color:var(--text-faint); font-weight:600; font-size:11.5px;
+    padding:0 12px 10px; border-bottom:1px solid var(--line-strong);
+  }
+  table.sites td{ padding:14px 12px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  table.sites tr:last-child td{ border-bottom:none; }
+  table.sites tr:hover td{ background:var(--bg-alt); }
+
+  .rank{ color:var(--text-faint); font-size:13px; }
+  .site-name{ font-weight:600; display:flex; align-items:center; gap:8px; }
+  .rec-dot{ width:6px; height:6px; border-radius:50%; background:var(--blue); flex:none; }
+  .site-name small{ display:block; color:var(--text-dim); font-weight:400; font-size:11.5px; margin-top:2px; }
+
+  .fit{ font-size:11px; padding:2px 7px; border-radius:5px; font-weight:600; margin-left:6px; }
+  .fit.ok{ background:rgba(52,211,153,0.13); color:var(--green); }
+  .fit.watch{ background:rgba(245,166,35,0.13); color:var(--amber); }
+
+  .score-track{ width:64px; height:4px; border-radius:3px; background:var(--bg-alt); margin-top:6px; overflow:hidden; }
+  .score-track > i{ display:block; height:100%; background:var(--blue); }
+
+  .deploy-btn{
+    border:1px solid var(--line-strong); background:transparent; color:var(--text-dim);
+    font-family:'Inter'; font-weight:600; font-size:12px; padding:7px 13px; border-radius:7px; cursor:pointer;
+  }
+  .deploy-btn:hover{ border-color:var(--blue); color:var(--text); }
+  .deploy-btn.primary{ background:var(--blue); border-color:var(--blue); color:#fff; }
+  .deploy-btn.primary:hover{ background:#5a8dff; border-color:#5a8dff; color:#fff; }
+  .deploy-btn:disabled{ opacity:0.5; cursor:default; border-color:var(--line); color:var(--text-faint); }
+
+  /* ---------- stepper ---------- */
+  .stepper{ display:flex; flex-direction:column; }
+  .step{ display:flex; gap:14px; }
+  .step .rail{ display:flex; flex-direction:column; align-items:center; }
+  .step .node{
+    width:9px; height:9px; border-radius:50%; background:var(--text-faint); margin-top:4px; flex:none;
+  }
+  .step.last .node{ background:var(--blue); }
+  .step .stem{ width:1px; flex:1; background:var(--line-strong); margin:4px 0; }
+  .step-body{ padding-bottom:20px; }
+  .step-body h3{ margin:0 0 3px; font-size:13.5px; font-weight:600; }
+  .step-body p{ margin:0; font-size:12.5px; color:var(--text-dim); line-height:1.5; }
+
+  .criteria{
+    margin-top:6px; padding-left:14px; border-left:2px solid var(--line-strong);
+    font-size:12.5px; color:var(--text-dim); line-height:1.65;
+  }
+  .criteria b{ color:var(--text); font-weight:600; }
+
+  .live-dot{
+    display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--green);
+    margin-right:7px; box-shadow:0 0 0 0 rgba(52,211,153,0.6); animation:pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(52,211,153,0.55); }
+    70%{ box-shadow:0 0 0 6px rgba(52,211,153,0); }
+    100%{ box-shadow:0 0 0 0 rgba(52,211,153,0); }
+  }
+  .feed-note{ color:var(--text-dim); font-size:12px; display:flex; align-items:center; margin-top:16px; }
+
+  /* ---------- monitoring view ---------- */
+  .mon-grid{ display:grid; grid-template-columns:0.95fr 1.05fr; gap:20px; align-items:start; }
+  @media (max-width: 980px){ .mon-grid{ grid-template-columns:1fr; } }
+
+  .unit-id{ font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600; }
+  .unit-loc{ color:var(--text-dim); font-size:12.5px; margin-top:3px; margin-bottom:22px; }
+
+  .metric-grid{ display:grid; grid-template-columns:1fr 1fr; }
+  .metric{ padding:16px 0; }
+  .metric:nth-child(odd){ padding-right:18px; border-right:1px solid var(--line); }
+  .metric:nth-child(even){ padding-left:18px; }
+  .metric:nth-child(-n+2){ border-top:none; }
+  .metric:nth-child(n+3){ border-top:1px solid var(--line); }
+  .metric .label{ color:var(--text-dim); font-size:12px; margin-bottom:6px; }
+  .metric .value{ font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:600; }
+  .metric .value.low{ color:var(--green); }
+  .metric .value.moderate{ color:var(--amber); }
+  .metric .value.high{ color:var(--red); }
+  .status-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; vertical-align:middle; }
+  .status-dot.low{ background:var(--green); }
+  .status-dot.moderate{ background:var(--amber); }
+  .status-dot.high{ background:var(--red); }
+
+  .sync-note{ font-size:12px; color:var(--text-faint); margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
+
+  .no-unit p{ color:var(--text-dim); font-size:13.5px; line-height:1.55; margin:0 0 16px; }
+  .no-unit button{
+    background:var(--blue); border:none; color:#fff; font-weight:600; font-size:13px;
+    padding:10px 18px; border-radius:8px; cursor:pointer;
+  }
+  .no-unit button:hover{ background:#5a8dff; }
+
+  select#unitSwitcher{
+    background:var(--bg-alt); color:var(--text); border:1px solid var(--line-strong);
+    border-radius:7px; padding:7px 10px; font-family:'Inter'; font-size:12.5px; margin-top:16px;
+  }
+
+  .list-min{ margin:0 0 26px; padding:0; list-style:none; }
+  .list-min li{
+    display:flex; gap:10px; font-size:13px; line-height:1.55; color:var(--text);
+    padding:9px 0; border-bottom:1px solid var(--line);
+  }
+  .list-min li:last-child{ border-bottom:none; }
+  .list-min li::before{ content:''; width:4px; height:4px; border-radius:50%; background:var(--blue); margin-top:8px; flex:none; }
+
+  .impact-line{ font-size:13px; line-height:1.6; margin-bottom:8px; }
+  .impact-line b{ color:var(--blue); font-weight:600; }
+
+  footer{ max-width:1180px; margin:40px auto 0; color:var(--text-faint); font-size:11.5px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand-row">
+    <div>
+      <div class="brand">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <path d="M2 15c2.2 0 2.2-4 4.4-4s2.2 4 4.4 4 2.2-4 4.4-4 2.2 4 4.4 4 2.2-4 4.4-4"
+                stroke="#3d7bff" stroke-width="2" stroke-linecap="round"/>
+          <path d="M2 20c2.2 0 2.2-4 4.4-4s2.2 4 4.4 4 2.2-4 4.4-4 2.2 4 4.4 4 2.2-4 4.4-4"
+                stroke="#3d7bff" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+        </svg>
+        <span class="wordmark">NetZero Wave</span>
+      </div>
+      <p class="tagline">Buoy-sensed site intelligence for storm baler deployment on the Pasig&ndash;Marikina river system.</p>
+    </div>
+    <nav class="tabs">
+      <button id="tabSitingBtn" class="active">Site selection</button>
+      <button id="tabMonitorBtn">Live monitoring</button>
+    </nav>
+  </div>
+
+  <svg class="wave-divider" viewBox="0 0 1180 28" preserveAspectRatio="none">
+    <path d="M0 14 C 60 2, 120 2, 180 14 C 240 26, 300 26, 360 14 C 420 2, 480 2, 540 14
+             C 600 26, 660 26, 720 14 C 780 2, 840 2, 900 14 C 960 26, 1020 26, 1080 14 C 1110 8, 1150 8, 1180 14"
+          stroke="#3d7bff" stroke-width="1.4" fill="none"/>
+  </svg>
+</header>
+
+<main>
+
+  <!-- ============ SITE SELECTION VIEW ============ -->
+  <section id="viewSiting" class="view">
+    <div class="siting-grid">
+
+      <div class="panel">
+        <h2>Candidate sites</h2>
+        <p class="panel-sub">Ranked by composite score from live buoy readings.</p>
+        <table class="sites">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Site</th>
+              <th>Flow</th>
+              <th>Debris</th>
+              <th>Flood proximity</th>
+              <th>Solar/signal</th>
+              <th>Score</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="sitesTbody"></tbody>
+        </table>
+        <p class="feed-note"><span class="live-dot"></span><span id="feedNote">Connecting…</span></p>
+      </div>
+
+      <div class="panel">
+        <h2>How a site gets chosen</h2>
+        <p class="panel-sub">The path from raw sensor data to a deployment decision.</p>
+        <div class="stepper">
+          <div class="step">
+            <div class="rail"><div class="node"></div><div class="stem"></div></div>
+            <div class="step-body">
+              <h3>Sense</h3>
+              <p>Solar-powered buoys anchored at candidate points log flow velocity, debris density and water level continuously.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="rail"><div class="node"></div><div class="stem"></div></div>
+            <div class="step-body">
+              <h3>Score &amp; rank</h3>
+              <p>Readings run through a siting model that ranks every candidate against deployment thresholds.</p>
+            </div>
+          </div>
+          <div class="step last">
+            <div class="rail"><div class="node"></div></div>
+            <div class="step-body">
+              <h3>Deploy &amp; monitor</h3>
+              <p>Crews are dispatched to the top-ranked site; sensors stay active to confirm performance and flag drift.</p>
+            </div>
+          </div>
+        </div>
+        <p class="criteria"><b>Site-selection criteria:</b> flow velocity 0.5&ndash;3+ m/s, high debris accumulation, proximity to flood-prone esteros and vulnerable communities, solar and signal access for continuous monitoring.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ MONITORING VIEW ============ -->
+  <section id="viewMonitor" class="view">
+    <div class="mon-grid">
+
+      <div class="panel" id="unitPanel"></div>
+
+      <div class="panel">
+        <h2>What this dashboard does</h2>
+        <ul class="list-min">
+          <li>Real-time monitoring of river flow, flood risk and plastic load.</li>
+          <li>Predictive, flood-based deployment scheduling across units.</li>
+          <li>Remote ram control, alerts and maintenance scheduling.</li>
+          <li>Shared data feed for LGU disaster-response teams and DENR.</li>
+        </ul>
+        <h2>Impact</h2>
+        <p class="impact-line"><b>LGUs &amp; communities</b> &nbsp;Earlier flood warnings and clearer waterways in high-risk barangays.</p>
+        <p class="impact-line"><b>Economic</b> &nbsp;Revenue recovered from baled plastic sold to recyclers.</p>
+        <p class="impact-line"><b>Environmental</b> &nbsp;Less flood-linked plastic blockage and less ocean-bound leakage.</p>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>Live data from the NetZero Wave backend — start it with <code>uvicorn main:app --reload</code>.</footer>
+
+<script>
+const API_BASE = 'http://127.0.0.1:8000';
+
+let sites = [];
+let deployedUnit = null;
+let backendReachable = true;
+
+async function apiGet(path){
+  const res = await fetch(API_BASE + path);
+  if (!res.ok) throw new Error(`${path} → ${res.status}`);
+  return res.json();
+}
+async function apiPost(path){
+  const res = await fetch(API_BASE + path, { method: 'POST' });
+  if (!res.ok) throw new Error(`${path} → ${res.status}`);
+  return res.json();
+}
+
+function setFeedNote(text, ok){
+  document.getElementById('feedNote').textContent = text;
+  document.querySelector('.live-dot').style.background = ok ? 'var(--green)' : 'var(--red)';
+}
+
+/* ---------- site selection ---------- */
+function renderSites(){
+  const tbody = document.getElementById('sitesTbody');
+
+  if (!backendReachable){
+    tbody.innerHTML = `<tr><td colspan="8" style="color:var(--text-dim); padding:20px 12px;">
+      Can't reach the backend at ${API_BASE}. Start it with <code>uvicorn main:app --reload</code>.
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = sites.map((s, i) => {
+    const isTop = i === 0;
+    const already = deployedUnit && deployedUnit.site_id === s.id;
+    const inRange = s.flow >= 0.5 && s.flow <= 3.5;
+    return `
+      <tr>
+        <td class="rank">${i+1}</td>
+        <td class="site-name">
+          ${isTop ? '<span class="rec-dot"></span>' : ''}
+          <span>${s.name}${isTop ? '<small>Recommended</small>' : ''}</span>
+        </td>
+        <td class="num">${s.flow.toFixed(1)} m/s <span class="fit ${inRange ? 'ok':'watch'}">${inRange ? 'in range':'watch'}</span></td>
+        <td class="num">${Math.round(s.debris)}%</td>
+        <td class="num">${Math.round(s.flood)}</td>
+        <td class="num">${Math.round(s.solar)}</td>
+        <td class="num">${s.score}
+          <div class="score-track"><i style="width:${s.score}%"></i></div>
+        </td>
+        <td>
+          <button class="deploy-btn ${isTop && !already ? 'primary' : ''}" ${already ? 'disabled' : ''} data-site="${s.id}">
+            ${already ? 'Deployed' : 'Deploy'}
+          </button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.deploy-btn').forEach(btn => {
+    btn.addEventListener('click', () => { if (!btn.disabled) deploy(btn.dataset.site); });
+  });
+}
+
+async function deploy(siteId){
+  try {
+    deployedUnit = await apiPost(`/api/deploy/${siteId}`);
+    renderSites();
+    renderUnitPanel();
+    switchTab('monitor');
+  } catch (err){
+    console.error(err);
+    setFeedNote('Deploy failed — check the backend is running.', false);
+  }
+}
+
+/* ---------- monitoring ---------- */
+function renderUnitPanel(){
+  const panel = document.getElementById('unitPanel');
+
+  if (!deployedUnit){
+    panel.innerHTML = `
+      <h2>No unit deployed yet</h2>
+      <div class="no-unit">
+        <p>Deploy a storm baler from Site selection to see its live feed here.</p>
+        <button id="goToSitingBtn">Go to site selection</button>
+      </div>`;
+    document.getElementById('goToSitingBtn').addEventListener('click', () => switchTab('siting'));
+    return;
+  }
+
+  const u = deployedUnit;
+  const level = u.flood_alert.toLowerCase(); // low | moderate | high
+
+  panel.innerHTML = `
+    <div class="unit-id">Unit ${u.id}</div>
+    <div class="unit-loc">${u.site_name}</div>
+    <div class="metric-grid">
+      <div class="metric"><div class="label">River flow</div><div class="value num">${u.flow.toFixed(1)} <span style="font-size:15px; color:var(--text-dim);">m/s</span></div></div>
+      <div class="metric"><div class="label">Flood alert</div><div class="value ${level}"><span class="status-dot ${level}"></span>${u.flood_alert}</div></div>
+      <div class="metric"><div class="label">Plastic load</div><div class="value num">${Math.round(u.plastic_load)}%</div></div>
+      <div class="metric"><div class="label">Bales produced (24h)</div><div class="value num">${u.bales}</div></div>
+    </div>
+    <p class="sync-note"><span class="live-dot" style="background:var(--green);"></span>Synced with LGU / DRRMO feed</p>
+    <select id="unitSwitcher">
+      ${sites.map(s => `<option value="${s.id}" ${s.id===u.site_id?'selected':''}>${s.name}</option>`).join('')}
+    </select>
+  `;
+
+  document.getElementById('unitSwitcher').addEventListener('change', (e) => deploy(e.target.value));
+}
+
+/* ---------- tabs ---------- */
+function switchTab(which){
+  const siting = which === 'siting';
+  document.getElementById('viewSiting').classList.toggle('active', siting);
+  document.getElementById('viewMonitor').classList.toggle('active', !siting);
+  document.getElementById('tabSitingBtn').classList.toggle('active', siting);
+  document.getElementById('tabMonitorBtn').classList.toggle('active', !siting);
+}
+document.getElementById('tabSitingBtn').addEventListener('click', () => switchTab('siting'));
+document.getElementById('tabMonitorBtn').addEventListener('click', () => switchTab('monitor'));
+switchTab('siting');
+
+/* ---------- poll loop ---------- */
+async function refresh(){
+  try {
+    sites = await apiGet('/api/sites');
+    backendReachable = true;
+    setFeedNote('Live — updated just now', true);
+    renderSites();
+    if (deployedUnit){
+      deployedUnit = await apiGet(`/api/units/${deployedUnit.id}`);
+      renderUnitPanel();
+    }
+  } catch (err){
+    backendReachable = false;
+    setFeedNote(`Backend unreachable at ${API_BASE}`, false);
+    renderSites();
+  }
+}
+refresh();
+setInterval(refresh, 3000);
+</script>
+
+</body>
+</html>
