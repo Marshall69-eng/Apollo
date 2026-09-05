@@ -1,44 +1,10 @@
-"""
-Alert dispatch service — Telegram + Twilio SMS webhooks
-=======================================================
-
-Sends emergency notifications to Barangay / LGU DRRMO personnel when a
-site crosses a critical flood-proximity or flow-velocity threshold.
-
-Credentials are read from environment variables (a `.env` file is loaded
-automatically if `python-dotenv` is installed):
-
-    TELEGRAM_BOT_TOKEN=8827096340:AAG0_PSFr27scqu5B9YV72ZAcAT3xQYPwx8
-    TWILIO_ACCOUNT_SID=ACxxxxxxxx
-    TWILIO_AUTH_TOKEN=xxxxxxxx
-    TWILIO_FROM_NUMBER=+15551234567
-    GENERIC_WEBHOOK_URL=https://hooks.example.org/drrmo   (optional)
-    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-VONAGE_API_KEY = os.getenv("VONAGE_API_KEY", "").strip()
-VONAGE_API_SECRET = os.getenv("VONAGE_API_SECRET", "").strip()
-VONAGE_FROM_NUMBER = os.getenv("VONAGE_FROM_NUMBER", "").strip()
-GENERIC_WEBHOOK_URL = os.getenv("GENERIC_WEBHOOK_URL", "").strip()
-
-If a channel has no credentials configured the dispatcher runs in
-DRY-RUN mode: the alert is still recorded and shown in the dashboard,
-with delivery status "simulated" instead of "sent". That keeps the demo
-fully functional without a paid Twilio account or a live bot token.
-"""
-
 from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List
-def channel_status() -> Dict[str, bool]:
-    """Which channels have real credentials wired up."""
-    return {
-        "telegram": bool(TELEGRAM_BOT_TOKEN),
-        "sms": bool(VONAGE_API_KEY and VONAGE_API_SECRET and VONAGE_FROM_NUMBER),
-        "webhook": bool(GENERIC_WEBHOOK_URL),
-    }
-import httpx
 
+import httpx
 
 try:  # optional convenience
     from dotenv import load_dotenv
@@ -47,46 +13,21 @@ try:  # optional convenience
 except Exception:  # pragma: no cover
     pass
 
-
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
-TWILIO_FROM_NUMBER = os.getenv("TWILIO_FROM_NUMBER", "").strip()
-GENERIC_WEBHOOK_URL = os.getenv("GENERIC_WEBHOOK_URL", "").strip()
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-1004369497154").strip()
+VONAGE_API_KEY = os.getenv("VONAGE_API_KEY", "").strip()
+VONAGE_API_SECRET = os.getenv("VONAGE_API_SECRET", "").strip()
+VONAGE_FROM_NUMBER = os.getenv("VONAGE_FROM_NUMBER", "").strip()
+GENERIC_WEBHOOK_URL = os.getenv("GENERIC_WEBHOOK_URL", "").strip()
 
 TIMEOUT = httpx.Timeout(10.0)
 
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-1004369497154").strip()
-```[cite: 3]
-
----
-
-### 2. Update the `_send_telegram` Function
-Find the `_send_telegram` block around **Lines 70–76**:
-```python
-async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
-    if not TELEGRAM_BOT_TOKEN:
-        return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN not set"}
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    r = await client.post(url, json={"chat_id": chat_id, "text": text})
-```[cite: 3]
-
-Replace those lines with this:
-```python
-async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
-    target_chat = chat_id or TELEGRAM_CHAT_ID
-    if not TELEGRAM_BOT_TOKEN or not target_chat:
-        return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN or chat ID not set"}
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    r = await client.post(url, json={"chat_id": target_chat, "text": text})
-```[cite: 3]
 
 def channel_status() -> Dict[str, bool]:
     """Which channels have real credentials wired up."""
     return {
         "telegram": bool(TELEGRAM_BOT_TOKEN),
-        "sms": bool(TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER),
+        "sms": bool(VONAGE_API_KEY and VONAGE_API_SECRET and VONAGE_FROM_NUMBER),
         "webhook": bool(GENERIC_WEBHOOK_URL),
     }
 
@@ -122,6 +63,16 @@ def build_message(
 # ---------------------------------------------------------------
 # Channel senders
 # ---------------------------------------------------------------
+async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
+    target_chat = chat_id or TELEGRAM_CHAT_ID
+    if not TELEGRAM_BOT_TOKEN or not target_chat:
+        return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN or chat ID not set"}
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    r = await client.post(url, json={"chat_id": target_chat, "text": text})
+    if r.status_code == 200 and r.json().get("ok"):
+        return {"status": "sent", "detail": "telegram ok"}
+    return {"status": "failed", "detail": f"telegram {r.status_code}: {r.text[:180]}"}
+
 
 async def _send_sms(client: httpx.AsyncClient, to_number: str, text: str) -> Dict[str, Any]:
     if not (VONAGE_API_KEY and VONAGE_API_SECRET and VONAGE_FROM_NUMBER):
@@ -147,28 +98,6 @@ async def _send_sms(client: httpx.AsyncClient, to_number: str, text: str) -> Dic
             return {"status": "failed", "detail": f"vonage error: {err}"}
             
     return {"status": "failed", "detail": f"vonage {r.status_code}: {r.text[:180]}"}
-async def _send_telegram(client: httpx.AsyncClient, chat_id: str, text: str) -> Dict[str, Any]:
-    if not TELEGRAM_BOT_TOKEN:
-        return {"status": "simulated", "detail": "TELEGRAM_BOT_TOKEN not set"}
-    url = f"https://api.telegram.org/bot8827096340:AAG0_PSFr27scqu5B9YV72ZAcAT3xQYPwx8/getUpdates"
-    r = await client.post(url, json={"chat_id": chat_id, "text": text})
-    if r.status_code == 200 and r.json().get("ok"):
-        return {"status": "sent", "detail": "telegram ok"}
-    return {"status": "failed", "detail": f"telegram {r.status_code}: {r.text[:180]}"}
-
-
-async def _send_sms(client: httpx.AsyncClient, to_number: str, text: str) -> Dict[str, Any]:
-    if not (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER):
-        return {"status": "simulated", "detail": "Twilio credentials not set"}
-    url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Messages.json"
-    r = await client.post(
-        url,
-        data={"From": TWILIO_FROM_NUMBER, "To": to_number, "Body": text[:1500]},
-        auth=(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN),
-    )
-    if r.status_code in (200, 201):
-        return {"status": "sent", "detail": f"twilio sid {r.json().get('sid', '')}"}
-    return {"status": "failed", "detail": f"twilio {r.status_code}: {r.text[:180]}"}
 
 
 async def _send_webhook(client: httpx.AsyncClient, payload: Dict[str, Any]) -> Dict[str, Any]:
