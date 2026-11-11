@@ -548,7 +548,12 @@
 <footer>Live data from the NetZero Wave backend. Map tiles &copy; Esri.</footer>
 
 <script>
-const API_BASE = '';
+/* When FastAPI serves this page (http://127.0.0.1:8000) the API is same-origin, so no
+   prefix is needed. If the page is opened straight from disk (file://) or from another
+   dev server such as VS Code Live Server (port 5500), point at the FastAPI server instead. */
+const API_BASE = (location.protocol === 'file:' || (location.port && location.port !== '8000'))
+  ? 'http://127.0.0.1:8000'
+  : '';
 
 let sites = [];
 let deployedUnit = null;
@@ -736,7 +741,8 @@ function renderSites(){
 
   if (!backendReachable){
     tbody.innerHTML = `<tr><td colspan="8" style="color:var(--text-dim); padding:20px 12px;">
-      Can't reach the backend API. Please refresh or check connection.
+      Can't reach the backend API at ${esc(API_BASE || location.origin)}. Make sure the server is running
+      (<code>uvicorn main:app --reload</code>), then refresh.
     </td></tr>`;
     return;
   }
