@@ -6,6 +6,9 @@ Serves the site-selection scoring model, live unit-monitoring data,
 an interactive GIS layer, and an automated Telegram / SMS alert
 dispatcher — all backed by a local SQLite file.
 
+Study area: the Calumpang River watershed in Batangas (Batangas City,
+Lipa City, San Jose, Cuenca, Ibaan, Taysan, Rosario, Padre Garcia).
+
 A background task simulates buoy sensor drift every 3 seconds, writes
 each reading to the database, and evaluates every site against the
 critical flood-proximity / flow-velocity thresholds. When a site
@@ -32,6 +35,7 @@ import random
 import sqlite3
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -42,6 +46,10 @@ from pydantic import BaseModel, Field
 import alerts as alert_service
 
 DB_PATH = "storm_baler.db"
+
+# Optional: real river geometry exported from OpenStreetMap / PSA / NAMRIA.
+# If this file exists, /api/geo/rivers serves it instead of the schematic line.
+RIVER_GEOJSON = Path("calumpang_rivers.geojson")
 
 # ---------------------------------------------------------------
 # Scoring model — mirrors the frontend prototype's weights/curve.
@@ -83,45 +91,53 @@ def alert_level(flow: float, flood: float) -> str:
 
 
 # ---------------------------------------------------------------
-# Seed data — real coordinates on the Pasig–Marikina river system
+# Seed data — Calumpang River watershed, Batangas
 # ---------------------------------------------------------------
+# NOTE: coordinates are municipal / poblacion centres (PhilAtlas), NOT
+# surveyed buoy positions, and the flow / debris / flood / solar values
+# are illustrative starting points for the simulator, not measurements.
+# Once real deployment spots on the river are chosen, replace the lat/lon
+# here (or UPDATE the sites table) and feed real readings via /api/ingest.
 # id, name, flow, debris, flood, solar, lat, lon, barangay/LGU
 SEED_SITES = [
-    ("S1", "Marikina River — Tumana Bridge", 1.9, 58, 72, 80,
-     14.64650, 121.08630, "Brgy. Tumana, Marikina City"),
-    ("S2", "Pasig River — Guadalupe", 1.2, 74, 65, 60,
-     14.56847, 121.04600, "Brgy. Guadalupe Nuevo, Makati / Mandaluyong"),
-    ("S3", "San Juan River — Ortigas Ave", 0.7, 41, 48, 55,
-     14.60166, 121.02030, "Brgy. Corazon de Jesus, San Juan City"),
-    ("S4", "Marikina River — Nangka", 2.4, 66, 83, 88,
-     14.67548, 121.10685, "Brgy. Nangka, Marikina City"),
-    ("S5", "Pasig River — Lambingan", 1.5, 52, 59, 70,
-     14.58639, 121.01972, "Brgy. 866 Sta. Ana, Manila"),
+    ("S1", "Calumpang Watershed — Batangas City", 0.9, 80, 78, 74,
+     13.75650, 121.05830, "Poblacion area, Batangas City"),
+    ("S2", "Calumpang Watershed — Ibaan", 1.4, 62, 64, 78,
+     13.81860, 121.13470, "Poblacion area, Ibaan"),
+    ("S3", "Calumpang Watershed — Taysan", 1.8, 55, 58, 82,
+     13.79680, 121.18850, "Poblacion area, Taysan"),
+    ("S4", "Calumpang Watershed — Rosario", 2.1, 60, 52, 85,
+     13.84600, 121.20600, "Poblacion area, Rosario"),
+    ("S5", "Calumpang Watershed — Padre Garcia", 1.6, 48, 40, 83,
+     13.87750, 121.21500, "Poblacion area, Padre Garcia"),
+    ("S6", "Calumpang Watershed — San Jose", 1.3, 52, 45, 80,
+     13.88020, 121.10190, "Poblacion area, San Jose"),
+    ("S7", "Calumpang Watershed — Cuenca", 1.1, 40, 38, 76,
+     13.90150, 121.04920, "Poblacion area, Cuenca"),
+    ("S8", "Calumpang Watershed — Lipa City", 1.5, 68, 50, 81,
+     13.94110, 121.16310, "Poblacion area, Lipa City"),
 ]
 
-# Simplified centreline of the river system, west (Manila Bay) → east
-# (Marikina valley). Used to draw the waterway on the Leaflet map.
+# SCHEMATIC main stem of the Calumpang River, source (Rosario) → mouth
+# (Batangas Bay). It only links known anchor points in the order the river
+# is described (Rosario → Taysan → Ibaan → Batangas City → bay); it is NOT
+# the surveyed channel. Drop a real GeoJSON at RIVER_GEOJSON to replace it.
 RIVER_PATHS = {
-    "Pasig River": [
-        [14.59560, 120.97290], [14.58990, 120.98600], [14.58750, 120.99850],
-        [14.58639, 121.01972], [14.58200, 121.03100], [14.56847, 121.04600],
-        [14.56600, 121.05800], [14.57450, 121.06950], [14.58600, 121.07600],
-    ],
-    "Marikina River": [
-        [14.58600, 121.07600], [14.59900, 121.08100], [14.61500, 121.08000],
-        [14.63200, 121.08450], [14.64650, 121.08630], [14.65900, 121.09400],
-        [14.67548, 121.10685], [14.69100, 121.11500],
-    ],
-    "San Juan River": [
-        [14.58750, 120.99850], [14.59300, 121.00700], [14.60166, 121.02030],
-        [14.60900, 121.03100], [14.61700, 121.04200],
+    "Calumpang River (schematic)": [
+        [13.84600, 121.20600],   # Rosario — listed source area
+        [13.79680, 121.18850],   # Taysan
+        [13.81860, 121.13470],   # Ibaan
+        [13.75650, 121.05830],   # Batangas City
+        [13.73694, 121.05820],   # mouth at Batangas Bay
     ],
 }
 
+# PLACEHOLDER targets — replace them in the Alerts tab with the real
+# Telegram chat ids / phone numbers before going live.
 SEED_RECIPIENTS = [
-    ("R1", "Marikina CDRRMO Operations", "Marikina City DRRMO", "telegram", "-1001234567890"),
-    ("R2", "Brgy. Tumana Emergency Desk", "Barangay Tumana", "sms", "+639171234567"),
-    ("R3", "MMDA Flood Control", "MMDA", "telegram", "-1009876543210"),
+    ("R1", "Batangas City CDRRMO Operations", "Batangas City DRRMO", "telegram", "-1001234567890"),
+    ("R2", "Lipa City CDRRMO Operations", "Lipa City DRRMO", "telegram", "-1009876543210"),
+    ("R3", "Batangas PDRRMO Operations", "Provincial DRRMO Batangas", "sms", "+639171234567"),
 ]
 
 # ---------------------------------------------------------------
@@ -133,8 +149,10 @@ SEED_RECIPIENTS = [
 # real flood warning) during an event. Changing them is a code change
 # that goes through review and redeployment.
 #
-# Calibration basis: MMDA/EFCOS Marikina River alarm practice and the
-# 0.5-3.0 m/s working band used by the siting model above.
+# Calibration basis: inherited from the Pasig–Marikina prototype (MMDA/EFCOS
+# alarm practice and the 0.5-3.0 m/s working band used by the siting model
+# above). NOT yet re-calibrated for the Calumpang watershed — confirm with the
+# LGU DRRMOs / PAGASA before live use.
 # ---------------------------------------------------------------
 THRESHOLDS = {
     "enabled": True,
@@ -260,6 +278,22 @@ def init_db() -> None:
 
     conn.commit()
     conn.close()
+
+
+def warn_if_legacy_db() -> None:
+    """init_db only seeds EMPTY tables, so a database created for the old
+    Pasig–Marikina prototype keeps its old sites and recipients. Say so loudly
+    instead of quietly mixing two geographies (and alerting the wrong DRRMO)."""
+    conn = get_db()
+    known = {(s[0], s[1]) for s in SEED_SITES}
+    existing = {(r["id"], r["name"]) for r in conn.execute("SELECT id, name FROM sites").fetchall()}
+    conn.close()
+    if existing - known:
+        print(
+            "[startup] WARNING: storm_baler.db contains sites that are not in the "
+            "Calumpang seed list (probably the old Pasig–Marikina data). Stop the "
+            f"server and delete {DB_PATH} to reseed sites AND recipients."
+        )
 
 
 def read_config() -> Dict[str, Any]:
@@ -518,6 +552,7 @@ async def simulate_tick() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    warn_if_legacy_db()
     task = asyncio.create_task(simulate_tick())
     yield
     task.cancel()
@@ -595,13 +630,19 @@ def list_sites():
 
 @app.get("/api/geo/rivers")
 def river_geometry():
-    """GeoJSON centrelines of the Pasig–Marikina river system for the map."""
+    """GeoJSON river centreline(s) of the Calumpang watershed for the map.
+
+    Serves RIVER_GEOJSON when that file exists (real geometry); otherwise
+    falls back to the schematic line in RIVER_PATHS, flagged `approximate`.
+    """
+    if RIVER_GEOJSON.exists():
+        return json.loads(RIVER_GEOJSON.read_text(encoding="utf-8"))
     return {
         "type": "FeatureCollection",
         "features": [
             {
                 "type": "Feature",
-                "properties": {"name": name},
+                "properties": {"name": name, "approximate": True},
                 "geometry": {
                     "type": "LineString",
                     # GeoJSON is [lon, lat]
