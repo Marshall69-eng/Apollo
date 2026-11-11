@@ -341,7 +341,7 @@
         </svg>
         <span class="wordmark">NetZero Wave</span>
       </div>
-      <p class="tagline">Buoy-sensed site intelligence for storm baler deployment on the Pasig&ndash;Marikina river system.</p>
+      <p class="tagline">Buoy-sensed site intelligence for storm baler deployment in the Calumpang River watershed, Batangas.</p>
     </div>
     <nav class="tabs">
       <button id="tabSitingBtn" class="active">Site selection</button>
@@ -365,8 +365,8 @@
     <div class="panel">
       <div class="map-head">
         <div>
-          <h2>River network map</h2>
-          <p class="panel-sub" style="margin-bottom:0;">Candidate sites and active buoys plotted on the Pasig&ndash;Marikina system. Marker colour follows live risk status.</p>
+          <h2>Watershed map</h2>
+          <p class="panel-sub" style="margin-bottom:0;">Candidate sites and active buoys plotted across the Calumpang River watershed. Marker colour follows live risk status.</p>
         </div>
         <button class="deploy-btn" id="fitBtn">Reset view</button>
       </div>
@@ -376,7 +376,7 @@
         <span><i class="mod"></i> Warning threshold</span>
         <span><i class="high"></i> Critical threshold</span>
         <span><i class="ring"></i> Active buoy / deployed unit</span>
-        <span><i class="river"></i> River centreline</span>
+        <span><i class="river"></i> <span id="riverLegend">River centreline</span></span>
       </div>
     </div>
 
@@ -435,7 +435,7 @@
             </div>
           </div>
         </div>
-        <p class="criteria"><b>Site-selection criteria:</b> flow velocity 0.5&ndash;3+ m/s, high debris accumulation, proximity to flood-prone esteros and vulnerable communities, solar and signal access for continuous monitoring.</p>
+        <p class="criteria"><b>Site-selection criteria:</b> flow velocity 0.5&ndash;3+ m/s, high debris accumulation, proximity to flood-prone river reaches and vulnerable communities, solar and signal access for continuous monitoring.</p>
       </div>
     </div>
   </section>
@@ -500,11 +500,11 @@
             <div class="field-row">
               <div class="field">
                 <label for="newName">Name</label>
-                <input id="newName" placeholder="Brgy. Nangka Duty Officer">
+                <input id="newName" placeholder="Taysan MDRRMO Duty Officer">
               </div>
               <div class="field">
                 <label for="newOrg">Office</label>
-                <input id="newOrg" placeholder="Barangay Nangka">
+                <input id="newOrg" placeholder="Taysan MDRRMO">
               </div>
             </div>
             <div class="field-row">
@@ -598,10 +598,28 @@ let riverLayer = null;
 const markers = {};       // site_id -> circleMarker
 const haloes  = {};       // site_id -> deployed-unit ring
 let mapBounds = null;
+let riverBounds = null;   // set once /api/geo/rivers loads
+let boundsFitted = false; // true after the first fit that included the sites
+
+/* Fit the view to the river line AND every site, so far-flung sites
+   (e.g. the upland LGUs) are never cut off by a river-only fit. */
+function fitAll(){
+  if (!map) return;
+  const pts = [];
+  if (riverBounds && riverBounds.isValid()){
+    pts.push(riverBounds.getSouthWest(), riverBounds.getNorthEast());
+  }
+  sites.forEach(s => { if (s.lat != null && s.lon != null) pts.push([s.lat, s.lon]); });
+  if (!pts.length) return;
+  mapBounds = L.latLngBounds(pts).pad(0.12);
+  map.fitBounds(mapBounds);
+  if (sites.length) boundsFitted = true;
+}
 
 function initMap(){
+  // Starting view over the Calumpang watershed; fitAll() refines it once data loads
   map = L.map('map', { zoomControl: true, scrollWheelZoom: false })
-         .setView([14.62, 121.05], 12);
+         .setView([13.83, 121.12], 10);
 
   // Esri dark canvas — free, no API key required
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
@@ -622,13 +640,23 @@ function initMap(){
       style: { color:'#3d7bff', weight:11, opacity:0.13, lineCap:'round' }
     });
     glow.addTo(riverLayer); line.addTo(riverLayer);
-    line.eachLayer(l => l.bindTooltip(l.feature.properties.name, { sticky:true }));
-    mapBounds = line.getBounds().pad(0.12);
-    map.fitBounds(mapBounds);
+    line.eachLayer(l => {
+      const nm = l.feature && l.feature.properties && l.feature.properties.name;
+      if (nm) l.bindTooltip(nm, { sticky:true });
+    });
+
+    // be upfront on the map when the line is only the schematic placeholder
+    const approx = (geo.features || []).some(f => f.properties && f.properties.approximate);
+    document.getElementById('riverLegend').textContent =
+      approx ? 'River centreline (schematic)' : 'River centreline';
+
+    const b = line.getBounds();
+    riverBounds = b.isValid() ? b : null;
+    fitAll();
   }).catch(() => {});
 
   document.getElementById('fitBtn').addEventListener('click', () => {
-    if (mapBounds) map.fitBounds(mapBounds);
+    fitAll();
     focusedSite = null;
     renderSites();
   });
@@ -686,6 +714,9 @@ function renderMap(){
     }
     if (haloes[s.id]) haloes[s.id].setStyle({ color: s.status === 'Low' ? '#3d7bff' : color });
   });
+
+  // first time the sites are on the map, frame them (plus the river if loaded)
+  if (!boundsFitted && sites.length) fitAll();
 }
 
 function focusOnMap(siteId){
