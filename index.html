@@ -2,1061 +2,669 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NetZero Wave</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#04060b">
+<title>NetZero Wave · Storm baler operations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
-  :root{
-    --bg:          #05070b;
-    --bg-panel:    #0b0f16;
-    --bg-alt:      #10151e;
-    --line:        rgba(255,255,255,0.07);
-    --line-strong: rgba(255,255,255,0.14);
-    --text:        #edf1f7;
-    --text-dim:    #8992a3;
-    --text-faint:  #545c69;
-    --blue:        #3d7bff;
-    --blue-soft:   rgba(61,123,255,0.13);
-    --green:       #34d399;
-    --amber:       #f5a623;
-    --red:         #f0655a;
-    --radius:      14px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:'Inter',sans-serif;
-    min-height:100vh;
-    padding:36px 40px 60px;
-  }
-  .num{ font-variant-numeric:tabular-nums; }
-
-  /* ---------- header ---------- */
-  header.top{ max-width:1180px; margin:0 auto; }
-  .brand-row{ display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; }
-  .brand{ display:flex; align-items:center; gap:10px; }
-  .brand svg{ flex:none; }
-  .brand .wordmark{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:19px; letter-spacing:-0.01em; }
-  .tagline{ color:var(--text-dim); font-size:13.5px; margin:8px 0 0; max-width:520px; line-height:1.5; }
-
-  nav.tabs{ display:flex; gap:26px; }
-  nav.tabs button{
-    background:none; border:none; color:var(--text-dim); cursor:pointer;
-    font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
-    padding:9px 1px; position:relative;
-  }
-  nav.tabs button.active{ color:var(--text); }
-  nav.tabs button.active::after{
-    content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px;
-    background:var(--blue); border-radius:2px;
-  }
-  nav.tabs button:not(.active):hover{ color:var(--text); }
-  .tab-badge{
-    display:inline-block; min-width:17px; padding:0 5px; margin-left:6px;
-    background:var(--red); color:#fff; border-radius:9px;
-    font-size:10.5px; line-height:17px; text-align:center; font-weight:700;
-  }
-  .tab-badge.hidden{ display:none; }
-
-  .wave-divider{ display:block; width:100%; height:28px; margin:22px 0 30px; opacity:0.5; }
-
-  main{ max-width:1180px; margin:0 auto; }
-  .view{ display:none; }
-  .view.active{ display:block; animation:fade .2s ease; }
-  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
-
-  /* ---------- panels ---------- */
-  .panel{ background:var(--bg-panel); border-radius:var(--radius); padding:26px 28px; }
-  .panel h2{ font-size:14.5px; font-weight:600; margin:0 0 4px; }
-  .panel .panel-sub{ color:var(--text-dim); font-size:12.5px; margin:0 0 18px; }
-  .panel + .panel{ margin-top:20px; }
-
-  .siting-grid{ display:grid; grid-template-columns:1.25fr 0.75fr; gap:20px; align-items:start; }
-  @media (max-width: 980px){ .siting-grid{ grid-template-columns:1fr; } }
-
-  /* ---------- map ---------- */
-  .map-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap; }
-  #map{
-    height:420px; border-radius:10px; margin-top:16px;
-    border:1px solid var(--line-strong); background:var(--bg-alt); z-index:0;
-  }
-  @media (max-width: 700px){ #map{ height:320px; } }
-  .legend{ display:flex; gap:16px; flex-wrap:wrap; font-size:11.5px; color:var(--text-dim); margin-top:12px; }
-  .legend span{ display:flex; align-items:center; gap:6px; }
-  .legend i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
-  .legend i.low{ background:var(--green); } .legend i.mod{ background:var(--amber); }
-  .legend i.high{ background:var(--red); }
-  .legend i.river{ width:16px; height:3px; border-radius:2px; background:#2f6fd0; }
-  .legend i.ring{ background:transparent; border:2px solid var(--blue); width:11px; height:11px; }
-
-  /* Leaflet dark popup skin */
-  .leaflet-popup-content-wrapper, .leaflet-popup-tip{
-    background:var(--bg-panel); color:var(--text);
-    border:1px solid var(--line-strong); box-shadow:0 8px 26px rgba(0,0,0,0.55);
-  }
-  .leaflet-popup-content-wrapper{ border-radius:10px; }
-  .leaflet-popup-content{ margin:14px 16px; font-family:'Inter',sans-serif; font-size:12.5px; min-width:216px; }
-  .leaflet-container a.leaflet-popup-close-button{ color:var(--text-faint); }
-  .leaflet-control-attribution{ background:rgba(5,7,11,0.75) !important; color:var(--text-faint) !important; }
-  .leaflet-control-attribution a{ color:var(--text-dim) !important; }
-  .leaflet-tile-pane{ filter:brightness(0.55) contrast(1.08) saturate(0.85); }
-  .leaflet-bar a{ background:var(--bg-panel); color:var(--text); border-bottom-color:var(--line-strong); }
-  .leaflet-bar a:hover{ background:var(--bg-alt); color:var(--text); }
-  .pop-title{ font-weight:600; font-size:13.5px; margin-bottom:2px; }
-  .pop-sub{ color:var(--text-dim); font-size:11.5px; margin-bottom:10px; }
-  .pop-row{ display:flex; justify-content:space-between; gap:14px; padding:4px 0; border-bottom:1px solid var(--line); }
-  .pop-row:last-of-type{ border-bottom:none; }
-  .pop-row span:first-child{ color:var(--text-dim); }
-  .pop-actions{ display:flex; gap:8px; margin-top:12px; }
-  .pulse-marker{ animation:mpulse 1.6s ease-out infinite; transform-origin:center; }
-  @keyframes mpulse{ 0%{opacity:.85;} 50%{opacity:.25;} 100%{opacity:.85;} }
-
-  /* ---------- sites table ---------- */
-  table.sites{ width:100%; border-collapse:collapse; font-size:13.5px; }
-  table.sites th{
-    text-align:left; color:var(--text-faint); font-weight:600; font-size:11.5px;
-    padding:0 12px 10px; border-bottom:1px solid var(--line-strong);
-  }
-  table.sites td{ padding:14px 12px; border-bottom:1px solid var(--line); vertical-align:middle; }
-  table.sites tr:last-child td{ border-bottom:none; }
-  table.sites tr:hover td{ background:var(--bg-alt); }
-  table.sites tr.focused td{ background:var(--blue-soft); }
-
-  .rank{ color:var(--text-faint); font-size:13px; }
-  .site-name{ font-weight:600; display:flex; align-items:center; gap:8px; cursor:pointer; }
-  .rec-dot{ width:6px; height:6px; border-radius:50%; background:var(--blue); flex:none; }
-  .site-name small{ display:block; color:var(--text-dim); font-weight:400; font-size:11.5px; margin-top:2px; }
-
-  .fit{ font-size:11px; padding:2px 7px; border-radius:5px; font-weight:600; margin-left:6px; }
-  .fit.ok{ background:rgba(52,211,153,0.13); color:var(--green); }
-  .fit.watch{ background:rgba(245,166,35,0.13); color:var(--amber); }
-
-  .score-track{ width:64px; height:4px; border-radius:3px; background:var(--bg-alt); margin-top:6px; overflow:hidden; }
-  .score-track > i{ display:block; height:100%; background:var(--blue); }
-
-  .deploy-btn{
-    border:1px solid var(--line-strong); background:transparent; color:var(--text-dim);
-    font-family:'Inter'; font-weight:600; font-size:12px; padding:7px 13px; border-radius:7px; cursor:pointer;
-  }
-  .deploy-btn:hover{ border-color:var(--blue); color:var(--text); }
-  .deploy-btn.primary{ background:var(--blue); border-color:var(--blue); color:#fff; }
-  .deploy-btn.primary:hover{ background:#5a8dff; border-color:#5a8dff; color:#fff; }
-  .deploy-btn:disabled{ opacity:0.5; cursor:default; border-color:var(--line); color:var(--text-faint); }
-  .deploy-btn.danger{ border-color:rgba(240,101,90,0.5); color:var(--red); }
-  .deploy-btn.danger:hover{ border-color:var(--red); color:#fff; background:rgba(240,101,90,0.18); }
-
-  /* ---------- stepper ---------- */
-  .stepper{ display:flex; flex-direction:column; }
-  .step{ display:flex; gap:14px; }
-  .step .rail{ display:flex; flex-direction:column; align-items:center; }
-  .step .node{ width:9px; height:9px; border-radius:50%; background:var(--text-faint); margin-top:4px; flex:none; }
-  .step.last .node{ background:var(--blue); }
-  .step .stem{ width:1px; flex:1; background:var(--line-strong); margin:4px 0; }
-  .step-body{ padding-bottom:20px; }
-  .step-body h3{ margin:0 0 3px; font-size:13.5px; font-weight:600; }
-  .step-body p{ margin:0; font-size:12.5px; color:var(--text-dim); line-height:1.5; }
-
-  .criteria{
-    margin-top:6px; padding-left:14px; border-left:2px solid var(--line-strong);
-    font-size:12.5px; color:var(--text-dim); line-height:1.65;
-  }
-  .criteria b{ color:var(--text); font-weight:600; }
-
-  .live-dot{
-    display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--green);
-    margin-right:7px; box-shadow:0 0 0 0 rgba(52,211,153,0.6); animation:pulse 1.8s infinite;
-  }
-  @keyframes pulse{
-    0%{ box-shadow:0 0 0 0 rgba(52,211,153,0.55); }
-    70%{ box-shadow:0 0 0 6px rgba(52,211,153,0); }
-    100%{ box-shadow:0 0 0 0 rgba(52,211,153,0); }
-  }
-  .feed-note{ color:var(--text-dim); font-size:12px; display:flex; align-items:center; margin-top:16px; }
-
-  /* ---------- monitoring view ---------- */
-  .mon-grid{ display:grid; grid-template-columns:0.95fr 1.05fr; gap:20px; align-items:start; }
-  @media (max-width: 980px){ .mon-grid{ grid-template-columns:1fr; } }
-
-  .unit-id{ font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600; }
-  .unit-loc{ color:var(--text-dim); font-size:12.5px; margin-top:3px; margin-bottom:22px; }
-
-  .metric-grid{ display:grid; grid-template-columns:1fr 1fr; }
-  .metric{ padding:16px 0; }
-  .metric:nth-child(odd){ padding-right:18px; border-right:1px solid var(--line); }
-  .metric:nth-child(even){ padding-left:18px; }
-  .metric:nth-child(-n+2){ border-top:none; }
-  .metric:nth-child(n+3){ border-top:1px solid var(--line); }
-  .metric .label{ color:var(--text-dim); font-size:12px; margin-bottom:6px; }
-  .metric .value{ font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:600; }
-  .metric .value.low{ color:var(--green); }
-  .metric .value.moderate{ color:var(--amber); }
-  .metric .value.high{ color:var(--red); }
-  .status-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; vertical-align:middle; }
-  .status-dot.low{ background:var(--green); }
-  .status-dot.moderate{ background:var(--amber); }
-  .status-dot.high{ background:var(--red); }
-
-  .sync-note{ font-size:12px; color:var(--text-faint); margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
-
-  .no-unit p{ color:var(--text-dim); font-size:13.5px; line-height:1.55; margin:0 0 16px; }
-  .no-unit button{
-    background:var(--blue); border:none; color:#fff; font-weight:600; font-size:13px;
-    padding:10px 18px; border-radius:8px; cursor:pointer;
-  }
-  .no-unit button:hover{ background:#5a8dff; }
-
-  select#unitSwitcher{
-    background:var(--bg-alt); color:var(--text); border:1px solid var(--line-strong);
-    border-radius:7px; padding:7px 10px; font-family:'Inter'; font-size:12.5px; margin-top:16px;
-  }
-
-  .list-min{ margin:0 0 26px; padding:0; list-style:none; }
-  .list-min li{
-    display:flex; gap:10px; font-size:13px; line-height:1.55; color:var(--text);
-    padding:9px 0; border-bottom:1px solid var(--line);
-  }
-  .list-min li:last-child{ border-bottom:none; }
-  .list-min li::before{ content:''; width:4px; height:4px; border-radius:50%; background:var(--blue); margin-top:8px; flex:none; }
-
-  .impact-line{ font-size:13px; line-height:1.6; margin-bottom:8px; }
-  .impact-line b{ color:var(--blue); font-weight:600; }
-
-  /* ---------- alerts view ---------- */
-  .alerts-grid{ display:grid; grid-template-columns:0.85fr 1.15fr; gap:20px; align-items:start; }
-  @media (max-width: 980px){ .alerts-grid{ grid-template-columns:1fr; } }
-
-  .chan-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
-  .chan{
-    font-size:11.5px; font-weight:600; padding:5px 10px; border-radius:20px;
-    border:1px solid var(--line-strong); color:var(--text-dim); display:flex; align-items:center; gap:6px;
-  }
-  .chan i{ width:6px; height:6px; border-radius:50%; background:var(--text-faint); }
-  .chan.on{ color:var(--green); border-color:rgba(52,211,153,0.35); }
-  .chan.on i{ background:var(--green); }
-  .chan.dry{ color:var(--amber); border-color:rgba(245,166,35,0.3); }
-  .chan.dry i{ background:var(--amber); }
-
-  .field{ margin-bottom:14px; }
-  .field label{ display:block; font-size:11.5px; color:var(--text-dim); margin-bottom:6px; }
-  .field input, .field select{
-    width:100%; background:var(--bg-alt); color:var(--text); border:1px solid var(--line-strong);
-    border-radius:8px; padding:9px 11px; font-family:'Inter'; font-size:13px;
-  }
-  .field input:focus, .field select:focus{ outline:none; border-color:var(--blue); }
-  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .lock-chip{
-    display:flex; align-items:center; gap:6px; flex:none; color:var(--text-dim);
-    font-size:11px; font-weight:600; letter-spacing:.02em; padding:5px 10px;
-    border:1px solid var(--line-strong); border-radius:20px;
-  }
-  .cfg-readout{ margin:4px 0 4px; }
-  .alerts-grid .map-head{ flex-wrap:nowrap; align-items:center; }
-  .alerts-grid .map-head > div{ min-width:0; }
-  .cfg-readout .row{
-    display:flex; align-items:baseline; justify-content:space-between; gap:16px;
-    padding:11px 0; border-bottom:1px solid var(--line); font-size:13px;
-  }
-  .cfg-readout .row:last-child{ border-bottom:none; }
-  .cfg-readout .row span{ color:var(--text-dim); }
-  .cfg-readout .row b{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; }
-  .cfg-readout .row b.warn{ color:var(--amber); }
-  .cfg-readout .row b.crit{ color:var(--red); }
-  .cfg-readout .row b.on{ color:var(--green); }
-  .save-btn{
-    background:var(--blue); border:none; color:#fff; font-family:'Inter'; font-weight:600;
-    font-size:13px; padding:10px 18px; border-radius:8px; cursor:pointer;
-  }
-  .save-btn:hover{ background:#5a8dff; }
-  .save-note{ font-size:11.5px; color:var(--green); margin-left:12px; opacity:0; transition:opacity .2s; }
-  .save-note.show{ opacity:1; }
-  .hint{ font-size:12px; color:var(--text-dim); line-height:1.6; margin-top:10px; }
-
-  .rcpt{ display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); font-size:13px; }
-  .rcpt:last-of-type{ border-bottom:none; }
-  .rcpt .who{ flex:1; min-width:0; }
-  .rcpt .who b{ font-weight:600; }
-  .rcpt .who small{ display:block; color:var(--text-dim); font-size:11.5px; margin-top:2px;
-                    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .pill{ font-size:10.5px; font-weight:700; letter-spacing:.03em; padding:3px 8px; border-radius:5px; flex:none; }
-  .pill.telegram{ background:rgba(61,123,255,0.15); color:#7aa5ff; }
-  .pill.sms{ background:rgba(52,211,153,0.13); color:var(--green); }
-  .pill.webhook{ background:rgba(245,166,35,0.13); color:var(--amber); }
-  .pill.off{ background:rgba(255,255,255,0.06); color:var(--text-faint); }
-  .icon-btn{
-    background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:12px;
-    font-family:'Inter'; font-weight:600; padding:4px 6px; flex:none;
-  }
-  .icon-btn:hover{ color:var(--text); }
-  .icon-btn.del:hover{ color:var(--red); }
-
-  .alert-card{
-    border:1px solid var(--line); border-left:3px solid var(--amber); border-radius:10px;
-    padding:14px 16px; margin-bottom:12px; background:var(--bg-alt);
-  }
-  .alert-card.critical{ border-left-color:var(--red); }
-  .alert-card.acked{ opacity:0.55; }
-  .alert-top{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  .sev{ font-size:10.5px; font-weight:700; letter-spacing:.04em; padding:3px 8px; border-radius:5px; }
-  .sev.critical{ background:rgba(240,101,90,0.16); color:var(--red); }
-  .sev.warning{ background:rgba(245,166,35,0.15); color:var(--amber); }
-  .alert-site{ font-weight:600; font-size:13.5px; flex:1; min-width:140px; }
-  .alert-time{ font-size:11.5px; color:var(--text-faint); }
-  .alert-reason{ font-size:12.5px; color:var(--text-dim); margin:8px 0 10px; line-height:1.5; }
-  .deliv{ display:flex; gap:6px; flex-wrap:wrap; }
-  .deliv span{ font-size:10.5px; padding:3px 8px; border-radius:5px; background:rgba(255,255,255,0.05); color:var(--text-dim); }
-  .deliv span.sent{ background:rgba(52,211,153,0.13); color:var(--green); }
-  .deliv span.simulated{ background:rgba(245,166,35,0.13); color:var(--amber); }
-  .deliv span.failed{ background:rgba(240,101,90,0.14); color:var(--red); }
-  .alert-foot{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:12px; flex-wrap:wrap; }
-  details.msg{ margin-top:10px; }
-  details.msg summary{ font-size:11.5px; color:var(--text-faint); cursor:pointer; }
-  details.msg pre{
-    white-space:pre-wrap; word-break:break-word; font-family:'Inter'; font-size:11.5px;
-    color:var(--text-dim); background:var(--bg-panel); border:1px solid var(--line);
-    border-radius:8px; padding:12px; margin:10px 0 0; line-height:1.55;
-  }
-  .empty{ color:var(--text-dim); font-size:13px; padding:14px 0; }
-
-  footer{ max-width:1180px; margin:40px auto 0; color:var(--text-faint); font-size:11.5px; }
+:root{--bg:#04060b;--txt:#f3f6fc;--dim:rgba(232,238,255,.64);--faint:rgba(232,238,255,.4);--hair:rgba(255,255,255,.09);--blue:#4d8dff;--cyan:#5ad1ff;--green:#3ddc97;--amber:#ffb340;--red:#ff6a5f;--radius:20px;--spring:cubic-bezier(.34,1.56,.64,1);
+--glass:linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.03) 45%),rgba(18,24,38,.5);
+--edge:inset 0 .5px .5px rgba(255,255,255,.4),inset .5px 0 .5px rgba(255,255,255,.18),inset 0 0 0 .5px rgba(255,255,255,.07),0 16px 40px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.3);
+--ui:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,system-ui,sans-serif;--disp:"Space Grotesk",var(--ui)}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--txt);font:400 14px/1.5 var(--ui);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;padding:calc(86px + env(safe-area-inset-top)) clamp(12px,3.5vw,40px) calc(40px + env(safe-area-inset-bottom))}
+h1,h2,p{margin:0}button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(255,255,255,.08);padding:1px 5px;border-radius:6px}
+.wrap{max-width:1180px;margin:0 auto}
+.bg{position:fixed;inset:0;z-index:-1;overflow:hidden}
+.bg i{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;animation:drift 28s ease-in-out infinite alternate}
+.bg i:nth-child(1){width:46vw;height:46vw;left:-8vw;top:-12vw;background:#1f4fd8}
+.bg i:nth-child(2){width:40vw;height:40vw;right:-10vw;top:18vh;background:#0a8f8f;animation-delay:-9s}
+.bg i:nth-child(3){width:34vw;height:34vw;left:30vw;bottom:-16vw;background:#5b36c9;animation-delay:-17s}
+@keyframes drift{to{transform:translate3d(6vw,4vh,0) scale(1.12)}}
+.glass{background:var(--glass);backdrop-filter:blur(24px) saturate(190%);-webkit-backdrop-filter:blur(24px) saturate(190%);box-shadow:var(--edge)}
+@supports not (backdrop-filter:blur(1px)){.glass{background:rgba(20,26,40,.94)}}
+/* nav */
+.nav{position:fixed;z-index:1000;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(1180px,calc(100% - 24px));display:flex;align-items:center;gap:12px;padding:7px 8px 7px 14px;border-radius:999px}
+.brand{display:flex;align-items:center;gap:9px;font:600 17px var(--disp);letter-spacing:-.01em;margin-right:auto;white-space:nowrap}
+.tabs{position:relative;display:flex;padding:4px;border-radius:999px;background:rgba(0,0,0,.3);box-shadow:inset 0 1px 3px rgba(0,0,0,.45)}
+.tabs button{position:relative;z-index:1;background:none;border:0;border-radius:999px;padding:7px 15px;font-weight:600;font-size:13px;color:var(--dim);cursor:pointer;white-space:nowrap;transition:color .25s}
+.tabs button.active,.tabs button:hover{color:var(--txt)}
+.thumb{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:999px;background:rgba(255,255,255,.17);box-shadow:inset 0 .5px .5px rgba(255,255,255,.5),0 4px 12px rgba(0,0,0,.35);transition:transform .5s var(--spring),width .5s var(--spring)}
+.badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--red);color:#fff;font-size:10.5px;line-height:18px;text-align:center;font-weight:700;box-shadow:0 0 12px rgba(255,106,95,.6)}
+.badge.hidden{display:none}.badge.pop{animation:pop .5s var(--spring)}
+@keyframes pop{from{transform:scale(.3)}}
+.sync{display:flex;align-items:center;gap:8px;padding:8px 13px;border-radius:999px;background:rgba(0,0,0,.3);font-size:12px;font-weight:600;color:var(--dim);white-space:nowrap}
+.live{display:inline-block;flex:none;width:7px;height:7px;border-radius:50%;background:var(--green);animation:ping 1.8s infinite}
+body.offline .live{background:var(--red);animation:none}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(61,220,151,.6)}70%,100%{box-shadow:0 0 0 7px transparent}}
+@media(max-width:700px){.brand span,.lg,.sync b{display:none}.tabs button{padding:7px 12px}.sync{padding:11px}}
+/* layout */
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin:6px 4px 22px}
+.hero h1{font:600 clamp(26px,4vw,38px)/1.1 var(--disp);letter-spacing:-.025em}
+.hero p{color:var(--dim);max-width:480px;margin-top:8px}
+.kpis{display:flex;gap:10px}
+.kpi{padding:12px 18px;border-radius:16px;min-width:92px}
+.kpi b{display:block;font:600 24px/1.1 var(--disp)}.kpi span{font-size:11.5px;color:var(--dim)}
+.panel{position:relative;border-radius:var(--radius);padding:24px}
+.stack{display:grid;gap:20px}
+.cols{display:grid;gap:20px;align-items:start}
+.c-mon{grid-template-columns:.95fr 1.05fr}.c-al{grid-template-columns:.85fr 1.15fr}
+@media(max-width:980px){.c-mon,.c-al{grid-template-columns:1fr}}
+.head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+h2{font:600 16px var(--disp);letter-spacing:-.01em}
+.sub{color:var(--dim);font-size:12.5px;margin-top:3px;max-width:62ch}
+.view{display:none}.view.active{display:block;animation:in .5s var(--spring)}
+@keyframes in{from{opacity:0;transform:translateY(10px) scale(.99)}}
+/* controls */
+.deploy-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;cursor:pointer;font-weight:600;font-size:12.5px;padding:8px 15px;border-radius:999px;background:rgba(255,255,255,.1);box-shadow:inset 0 .5px .5px rgba(255,255,255,.4),0 2px 6px rgba(0,0,0,.25);transition:transform .35s var(--spring),background .2s,filter .2s;position:relative}
+.deploy-btn:hover{background:rgba(255,255,255,.17);transform:translateY(-1px)}.deploy-btn:active{transform:scale(.94)}
+.deploy-btn.primary{background:linear-gradient(180deg,#6ba1ff,#3a74f0);box-shadow:inset 0 .5px .5px rgba(255,255,255,.6),0 6px 18px rgba(61,120,245,.45)}
+.deploy-btn.primary:hover{filter:brightness(1.1)}
+.deploy-btn.danger{color:var(--red);background:rgba(255,106,95,.14)}.deploy-btn.danger:hover{background:rgba(255,106,95,.26)}
+.deploy-btn:disabled{opacity:.45;cursor:default;transform:none;filter:none}
+.deploy-btn.busy{color:transparent!important;pointer-events:none}
+.deploy-btn.busy::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.field{margin-bottom:12px}.field label{display:block;font-size:11.5px;color:var(--dim);margin-bottom:5px}
+input,select{width:100%;padding:10px 12px;border:0;border-radius:12px;background:rgba(0,0,0,.28);box-shadow:inset 0 1px 3px rgba(0,0,0,.4),inset 0 0 0 .5px rgba(255,255,255,.12);font-size:13px}
+input:focus,select:focus{outline:0;box-shadow:inset 0 1px 3px rgba(0,0,0,.4),0 0 0 2px rgba(90,209,255,.55)}
+input.bad{box-shadow:inset 0 0 0 1px var(--red)}select option{background:#141a28}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:520px){.row2{grid-template-columns:1fr}}
+.pick{width:auto;max-width:190px;padding:8px 12px}
+/* map */
+.mapwrap{position:relative;border-radius:16px;overflow:hidden;box-shadow:0 0 0 .5px rgba(255,255,255,.18),0 8px 24px rgba(0,0,0,.4)}
+#map{height:440px;background:#0a0e16;z-index:0;scroll-margin-top:96px}
+@media(max-width:700px){#map{height:340px}}
+.legend{position:absolute;left:12px;bottom:12px;z-index:5;display:flex;gap:6px 14px;flex-wrap:wrap;padding:8px 12px;border-radius:14px;font-size:11.5px;color:var(--dim);max-width:calc(100% - 24px)}
+@media(max-width:700px){.legend{position:static;border-radius:0;max-width:none}}
+.legend span{display:flex;align-items:center;gap:6px}.legend i{width:9px;height:9px;border-radius:50%}
+.legend .river{width:16px;height:3px;border-radius:2px;background:#2f6fd0}.legend .ring{background:none;border:2px solid var(--blue);width:11px;height:11px}
+.leaflet-tile-pane{filter:brightness(.6) contrast(1.1) saturate(.9) hue-rotate(6deg)}
+.leaflet-container{font-family:var(--ui);background:#0a0e16}
+.leaflet-bar{border:0!important;border-radius:14px;overflow:hidden;box-shadow:var(--edge)!important}
+.leaflet-bar a{background:rgba(20,26,40,.6);backdrop-filter:blur(16px);color:var(--txt);border-bottom:.5px solid var(--hair);width:34px;height:34px;line-height:34px}
+.leaflet-bar a:hover{background:rgba(255,255,255,.14);color:var(--txt)}
+.leaflet-control-attribution{background:rgba(10,14,22,.6)!important;backdrop-filter:blur(10px);color:var(--faint)!important;border-radius:10px 0 0 0}.leaflet-control-attribution a{color:var(--dim)!important}
+.leaflet-tooltip{background:rgba(20,26,40,.72);backdrop-filter:blur(16px);border:0;color:var(--txt);border-radius:12px;box-shadow:var(--edge);padding:6px 11px;font-size:12px}.leaflet-tooltip:before{display:none}
+.leaflet-popup-content-wrapper{background:var(--glass);backdrop-filter:blur(24px) saturate(190%);-webkit-backdrop-filter:blur(24px) saturate(190%);color:var(--txt);border-radius:20px;box-shadow:var(--edge);padding:0;overflow:hidden}
+.leaflet-popup-tip{background:rgba(26,32,48,.85);box-shadow:none}
+.leaflet-popup-content{margin:0;width:268px!important;font-size:12.5px}
+.leaflet-container a.leaflet-popup-close-button{top:12px;right:12px;width:22px;height:22px;line-height:20px;border-radius:50%;background:rgba(255,255,255,.12);color:var(--dim);font-size:15px;padding:0;text-align:center}
+.pop-h{display:flex;align-items:center;gap:10px;padding:16px 44px 12px 16px}
+.pop-h>i{width:10px;height:10px;border-radius:50%;flex:none}.pop-h b{display:block;font:600 14px var(--disp)}.pop-h small{color:var(--dim)}
+.pop-g{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 12px}
+.pop-g div{background:rgba(255,255,255,.06);border-radius:12px;padding:8px 10px}.pop-g small{display:block;color:var(--dim);font-size:11px}.pop-g b{font:600 15px var(--disp)}
+.pop-c{padding:10px 16px;color:var(--faint);font-size:11.5px}
+.ctx button{display:flex;width:100%;align-items:center;justify-content:space-between;padding:12px 16px;border:0;border-top:.5px solid var(--hair);background:none;cursor:pointer;font-weight:500;font-size:13.5px;text-align:left;transition:background .15s}
+.ctx button:hover{background:rgba(255,255,255,.1)}.ctx button.danger{color:var(--red)}.ctx button:disabled{color:var(--faint);cursor:default;background:none}
+.radar{background:none;border:0}.rw{position:relative;width:100%;height:100%;pointer-events:none}
+.rw i{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--c);background:radial-gradient(circle,color-mix(in srgb,var(--c) 38%,transparent),transparent 68%);opacity:0;animation:radar 2.8s cubic-bezier(.2,.6,.3,1) infinite}
+.rw i+i{animation-delay:1.4s}@keyframes radar{0%{transform:scale(.2);opacity:.95}100%{transform:scale(1);opacity:0}}
+.river-flow{animation:flow 1.4s linear infinite}@keyframes flow{to{stroke-dashoffset:-13}}
+/* table */
+.tbl{overflow-x:auto;margin:0 -8px;padding:0 8px}
+table{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:13.5px;min-width:560px}
+th{text-align:left;color:var(--faint);font-weight:600;font-size:11.5px;padding:0 12px 4px;white-space:nowrap}
+td{padding:12px;background:rgba(255,255,255,.045);vertical-align:middle;transition:background .2s}
+td:first-child{border-radius:14px 0 0 14px}td:last-child{border-radius:0 14px 14px 0}
+tbody tr:hover td{background:rgba(255,255,255,.09)}tr.focus td{background:rgba(77,141,255,.2)}
+.rank{color:var(--faint);width:36px}
+.site{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.site b{display:block;font-weight:600}.site small{display:block;color:var(--dim);font-size:11.5px}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--c);box-shadow:0 0 10px var(--c)}
+.m span{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.bar{height:5px;width:76px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--blue),var(--cyan));transition:width .8s var(--spring)}
+.fit{font-size:10.5px;padding:2px 8px;border-radius:999px;font-weight:600;font-style:normal}
+.fit.ok{background:rgba(61,220,151,.15);color:var(--green)}.fit.watch{background:rgba(255,179,64,.16);color:var(--amber)}
+@media(max-width:720px){.hm{display:none}}
+.note{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:12px;margin-top:12px}
+/* skeleton + empty */
+.sk{border-radius:12px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.13),rgba(255,255,255,.05));background-size:200% 100%;animation:sh 1.4s linear infinite}
+@keyframes sh{to{background-position:-200% 0}}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 16px}
+.empty .ic{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.08);box-shadow:inset 0 .5px .5px rgba(255,255,255,.4);color:var(--cyan);margin-bottom:6px}
+.empty b{font-weight:600;font-size:14px}.empty p{color:var(--dim);font-size:12.5px;max-width:40ch;margin-bottom:8px}
+/* steps + lists */
+.list{list-style:none;margin:0 0 22px;padding:0}
+.list li{display:flex;gap:10px;padding:9px 0;border-bottom:.5px solid var(--hair);font-size:13px}.list li:last-child{border:0}
+.list li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--cyan);margin-top:8px;flex:none}
+.impact{font-size:13px;margin-bottom:8px}.impact b{color:var(--cyan);font-weight:600;margin-right:8px}
+/* monitoring */
+.unit-id{font:600 18px var(--disp)}.unit-loc{color:var(--dim);font-size:12.5px;margin:2px 0 18px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{padding:16px;border-radius:16px;background:rgba(255,255,255,.055);box-shadow:inset 0 .5px .5px rgba(255,255,255,.25)}
+.tile .l{color:var(--dim);font-size:12px;margin-bottom:6px}.tile .v{font:600 28px/1.15 var(--disp)}.tile .v small{font-size:14px;color:var(--dim);font-weight:500}
+.tile .bar{width:100%}.v.Low{color:var(--green)}.v.Moderate{color:var(--amber)}.v.High{color:var(--red)}
+.v .dot{display:inline-block;width:10px;height:10px;margin-right:8px}
+.sync-note{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin-top:16px;padding-top:14px;border-top:.5px solid var(--hair)}
+#unitSwitcher{margin-top:14px}
+/* alerts */
+.chans{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chan{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--dim)}
+.chan i{width:6px;height:6px;border-radius:50%;background:currentColor}.chan.on{color:var(--green)}.chan.dry{color:var(--amber)}
+.lock{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--dim);padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.07)}
+.cfg .r{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-bottom:.5px solid var(--hair);font-size:13px}
+.cfg .r:last-child{border:0}.cfg .r span{color:var(--dim)}.cfg .r b{font:600 14px var(--disp)}
+.warn{color:var(--amber)}.crit{color:var(--red)}.on{color:var(--green)}
+.hint{font-size:12px;color:var(--dim);line-height:1.6;margin-top:10px}
+.rcpt{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:.5px solid var(--hair)}
+.rcpt .who{flex:1;min-width:0}.rcpt .who b{font-weight:600}.rcpt .who small{display:block;color:var(--dim);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:3px 9px;border-radius:999px;flex:none}
+.pill.telegram{background:rgba(77,141,255,.18);color:#8db4ff}.pill.sms{background:rgba(61,220,151,.15);color:var(--green)}.pill.webhook{background:rgba(255,179,64,.16);color:var(--amber)}.pill.off{background:rgba(255,255,255,.07);color:var(--faint)}
+.sw{flex:none;width:42px;height:26px;border-radius:99px;border:0;padding:0;cursor:pointer;background:rgba(255,255,255,.18);position:relative;transition:background .3s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .4s var(--spring)}
+.sw[aria-checked=true]{background:var(--green)}.sw[aria-checked=true]::after{transform:translateX(16px)}
+.link{background:none;border:0;color:var(--faint);cursor:pointer;font-size:12px;font-weight:600;padding:4px 6px}.link:hover{color:var(--red)}
+.add{margin-top:16px;padding-top:16px;border-top:.5px solid var(--hair)}
+.acard{position:relative;padding:14px 16px 14px 20px;margin-bottom:10px;border-radius:16px;background:rgba(255,255,255,.055);box-shadow:inset 0 .5px .5px rgba(255,255,255,.25);overflow:hidden}
+.acard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--amber)}.acard.critical::before{background:var(--red)}.acard.acked{opacity:.55}
+.atop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.asite{font-weight:600;flex:1;min-width:130px}
+.sev{font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:3px 9px;border-radius:999px}
+.sev.critical{background:rgba(255,106,95,.18);color:var(--red)}.sev.warning{background:rgba(255,179,64,.17);color:var(--amber)}
+time,.dim{font-size:11.5px;color:var(--faint)}
+.reason{font-size:12.5px;color:var(--dim);margin:8px 0 10px}
+.deliv{display:flex;gap:6px;flex-wrap:wrap}.deliv span{font-size:10.5px;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--dim)}
+.deliv .sent{background:rgba(61,220,151,.15);color:var(--green)}.deliv .simulated{background:rgba(255,179,64,.16);color:var(--amber)}.deliv .failed{background:rgba(255,106,95,.16);color:var(--red)}
+details{margin-top:10px}summary{font-size:11.5px;color:var(--faint);cursor:pointer}
+pre{white-space:pre-wrap;word-break:break-word;font:11.5px/1.55 var(--ui);color:var(--dim);background:rgba(0,0,0,.28);border-radius:12px;padding:12px;margin:8px 0 0}
+.afoot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+/* toast + footer */
+#toasts{position:fixed;z-index:2000;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);display:grid;gap:8px;width:max-content;max-width:calc(100% - 24px)}
+.toast{padding:12px 18px;border-radius:999px;font-size:13px;font-weight:500;animation:up .5s var(--spring)}
+.toast.err{color:#ffb4ad}.toast.out{opacity:0;transform:translateY(8px);transition:.35s}
+@keyframes up{from{opacity:0;transform:translateY(20px) scale(.9)}}
+footer{max-width:1180px;margin:34px auto 0;color:var(--faint);font-size:11.5px;text-align:center}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
+<div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
 
-<header class="top">
-  <div class="brand-row">
-    <div>
-      <div class="brand">
-        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-          <path d="M2 15c2.2 0 2.2-4 4.4-4s2.2 4 4.4 4 2.2-4 4.4-4 2.2 4 4.4 4 2.2-4 4.4-4"
-                stroke="#3d7bff" stroke-width="2" stroke-linecap="round"/>
-          <path d="M2 20c2.2 0 2.2-4 4.4-4s2.2 4 4.4 4 2.2-4 4.4-4 2.2 4 4.4 4 2.2-4 4.4-4"
-                stroke="#3d7bff" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
-        </svg>
-        <span class="wordmark">NetZero Wave</span>
-      </div>
-      <p class="tagline">Buoy-sensed site intelligence for storm baler deployment in the Calumpang River watershed, Batangas.</p>
-    </div>
-    <nav class="tabs">
-      <button id="tabSitingBtn" class="active">Site selection</button>
-      <button id="tabMonitorBtn">Live monitoring</button>
-      <button id="tabAlertsBtn">Alerts<span id="alertBadge" class="tab-badge hidden">0</span></button>
-    </nav>
+<header class="nav glass">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true"><path d="M2 15c2.2 0 2.2-4 4.4-4s2.2 4 4.4 4 2.2-4 4.4-4 2.2 4 4.4 4 2.2-4 4.4-4" stroke="#5ad1ff" stroke-width="2" stroke-linecap="round"/><path d="M2 20c2.2 0 2.2-4 4.4-4s2.2 4 4.4 4 2.2-4 4.4-4 2.2 4 4.4 4 2.2-4 4.4-4" stroke="#4d8dff" stroke-width="2" stroke-linecap="round" opacity=".5"/></svg>
+    <span>NetZero Wave</span>
   </div>
-
-  <svg class="wave-divider" viewBox="0 0 1180 28" preserveAspectRatio="none">
-    <path d="M0 14 C 60 2, 120 2, 180 14 C 240 26, 300 26, 360 14 C 420 2, 480 2, 540 14
-             C 600 26, 660 26, 720 14 C 780 2, 840 2, 900 14 C 960 26, 1020 26, 1080 14 C 1110 8, 1150 8, 1180 14"
-          stroke="#3d7bff" stroke-width="1.4" fill="none"/>
-  </svg>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <i class="thumb" id="thumb"></i>
+    <button id="tabSitingBtn" role="tab" data-tab="siting" class="active">Site<span class="lg"> selection</span></button>
+    <button id="tabMonitorBtn" role="tab" data-tab="monitor">Live<span class="lg"> monitoring</span></button>
+    <button id="tabAlertsBtn" role="tab" data-tab="alerts">Alerts<span id="alertBadge" class="badge hidden" aria-live="polite">0</span></button>
+  </nav>
+  <div class="sync" role="status"><span class="live"></span><b id="navSync">Connecting…</b></div>
 </header>
 
-<main>
-
-  <!-- ============ SITE SELECTION VIEW ============ -->
-  <section id="viewSiting" class="view">
-
-    <div class="panel">
-      <div class="map-head">
-        <div>
-          <h2>Watershed map</h2>
-          <p class="panel-sub" style="margin-bottom:0;">Candidate sites and active buoys plotted across the Calumpang River watershed. Marker colour follows live risk status.</p>
-        </div>
-        <button class="deploy-btn" id="fitBtn">Reset view</button>
-      </div>
-      <div id="map"></div>
-      <div class="legend">
-        <span><i class="low"></i> Nominal</span>
-        <span><i class="mod"></i> Warning threshold</span>
-        <span><i class="high"></i> Critical threshold</span>
-        <span><i class="ring"></i> Active buoy / deployed unit</span>
-        <span><i class="river"></i> <span id="riverLegend">River centreline</span></span>
-      </div>
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <h1>Calumpang River watershed</h1>
+      <p>Buoy-sensed site intelligence for storm baler deployment, Batangas.</p>
     </div>
-
-    <div class="siting-grid" style="margin-top:20px;">
-      <div class="panel">
-        <h2>Candidate sites</h2>
-        <p class="panel-sub">Ranked by composite score from live buoy readings.</p>
-        <table class="sites">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Site</th>
-              <th>Flow</th>
-              <th>Debris</th>
-              <th>Flood proximity</th>
-              <th>Solar/signal</th>
-              <th>Score</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="sitesTbody"></tbody>
-        </table>
-        <p class="feed-note"><span class="live-dot"></span><span id="feedNote">Connecting…</span></p>
-      </div>
-
-      <div class="panel">
-        <h2>How a site gets chosen</h2>
-        <p class="panel-sub">The path from raw sensor data to a deployment decision.</p>
-        <div class="stepper">
-          <div class="step">
-            <div class="rail"><div class="node"></div><div class="stem"></div></div>
-            <div class="step-body">
-              <h3>Sense</h3>
-              <p>Solar-powered buoys anchored at candidate points log flow velocity, debris density and water level continuously.</p>
-            </div>
-          </div>
-          <div class="step">
-            <div class="rail"><div class="node"></div><div class="stem"></div></div>
-            <div class="step-body">
-              <h3>Score &amp; rank</h3>
-              <p>Readings run through a siting model that ranks every candidate against deployment thresholds.</p>
-            </div>
-          </div>
-          <div class="step">
-            <div class="rail"><div class="node"></div><div class="stem"></div></div>
-            <div class="step-body">
-              <h3>Deploy &amp; monitor</h3>
-              <p>Crews are dispatched to the top-ranked site; sensors stay active to confirm performance and flag drift.</p>
-            </div>
-          </div>
-          <div class="step last">
-            <div class="rail"><div class="node"></div></div>
-            <div class="step-body">
-              <h3>Warn</h3>
-              <p>Threshold breaches fire automatic Telegram and SMS notices to Barangay and LGU DRRMO duty officers.</p>
-            </div>
-          </div>
-        </div>
-        <p class="criteria"><b>Site-selection criteria:</b> flow velocity 0.5&ndash;3+ m/s, high debris accumulation, proximity to flood-prone river reaches and vulnerable communities, solar and signal access for continuous monitoring.</p>
-      </div>
+    <div class="kpis">
+      <div class="kpi glass"><b id="kSites">–</b><span>Candidate sites</span></div>
+      <div class="kpi glass"><b id="kUnits">–</b><span>Units deployed</span></div>
+      <div class="kpi glass"><b id="kOpen">–</b><span>Open alerts</span></div>
     </div>
   </section>
 
-  <!-- ============ MONITORING VIEW ============ -->
-  <section id="viewMonitor" class="view">
-    <div class="mon-grid">
-
-      <div class="panel" id="unitPanel"></div>
-
-      <div class="panel">
-        <h2>What this dashboard does</h2>
-        <ul class="list-min">
-          <li>Real-time monitoring of river flow, flood risk and plastic load.</li>
-          <li>Predictive, flood-based deployment scheduling across units.</li>
-          <li>Remote ram control, alerts and maintenance scheduling.</li>
-          <li>Automatic Telegram / SMS dispatch to Barangay and LGU DRRMO duty officers.</li>
-          <li>Shared data feed for LGU disaster-response teams and DENR.</li>
-        </ul>
-        <h2>Impact</h2>
-        <p class="impact-line"><b>LGUs &amp; communities</b> &nbsp;Earlier flood warnings and clearer waterways in high-risk barangays.</p>
-        <p class="impact-line"><b>Economic</b> &nbsp;Revenue recovered from baled plastic sold to recyclers.</p>
-        <p class="impact-line"><b>Environmental</b> &nbsp;Less flood-linked plastic blockage and less ocean-bound leakage.</p>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ============ ALERTS VIEW ============ -->
-  <section id="viewAlerts" class="view">
-    <div class="alerts-grid">
-
-      <div>
-        <div class="panel">
-          <div class="map-head">
-            <div>
-              <h2>Dispatch thresholds</h2>
-              <p class="panel-sub" style="margin-bottom:0;">A site breaching either threshold triggers an automatic notification.</p>
-            </div>
-            <span class="lock-chip" style="margin-left:auto;" title="Set in code — not editable from the dashboard">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="5" y="10.5" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
-                <path d="M8.5 10.5V7.5a3.5 3.5 0 1 1 7 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>Locked
-            </span>
+  <main>
+    <!-- SITE SELECTION -->
+    <section id="viewSiting" class="view active">
+      <div class="stack">
+        <div class="panel glass">
+          <div class="head">
+            <div><h2>Watershed map</h2><p class="sub">Candidate sites and active buoys across the river. Marker colour follows live risk status.</p></div>
+            <button class="deploy-btn" id="fitBtn">Reset view</button>
           </div>
-
-          <div class="chan-row" style="margin-top:18px;" id="chanRow"></div>
-
-          <div class="cfg-readout" id="cfgReadout"></div>
-
-          <p class="hint">Thresholds are safety constants defined in <code>main.py</code> and served read-only, so no one can raise a limit and suppress a warning while an event is in progress. Adjusting them is a reviewed code change, not a dashboard setting.</p>
-          <p class="hint">Channels marked dry-run still record and display alerts, but nothing leaves the server until <code>TELEGRAM_BOT_TOKEN</code> or the Twilio variables are set in <code>.env</code>.</p>
+          <div class="mapwrap">
+            <div id="map" role="application" aria-label="Watershed map"></div>
+            <div class="legend glass">
+              <span><i style="background:var(--green)"></i>Nominal</span>
+              <span><i style="background:var(--amber)"></i>Warning</span>
+              <span><i style="background:var(--red)"></i>Critical</span>
+              <span><i class="ring"></i>Active buoy</span>
+              <span><i class="river"></i><span id="riverLegend">River centreline</span></span>
+            </div>
+          </div>
         </div>
 
-        <div class="panel">
-          <h2>Notification recipients</h2>
-          <p class="panel-sub">Barangay and LGU DRRMO duty officers on the escalation list.</p>
-          <div id="rcptList"></div>
-
-          <div style="margin-top:18px; border-top:1px solid var(--line); padding-top:18px;">
-            <div class="field-row">
-              <div class="field">
-                <label for="newName">Name</label>
-                <input id="newName" placeholder="Taysan MDRRMO Duty Officer">
-              </div>
-              <div class="field">
-                <label for="newOrg">Office</label>
-                <input id="newOrg" placeholder="Taysan MDRRMO">
-              </div>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="newChannel">Channel</label>
-                <select id="newChannel">
-                  <option value="telegram">Telegram</option>
-                  <option value="sms">SMS (Twilio)</option>
-                  <option value="webhook">Webhook</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="newTarget">Chat ID / number / URL</label>
-                <input id="newTarget" placeholder="-1001234567890">
-              </div>
-            </div>
-            <button class="save-btn" id="addRcptBtn">Add recipient</button>
+        <div class="panel glass">
+          <h2>Candidate sites</h2>
+          <p class="sub" style="margin-bottom:14px">Ranked by composite score from live buoy readings. Select a site to see it on the map.</p>
+          <div class="tbl">
+            <table>
+              <thead><tr><th>#</th><th>Site</th><th>Flow</th><th class="hm">Debris</th><th>Flood proximity</th><th class="hm">Solar/signal</th><th>Score</th><th></th></tr></thead>
+              <tbody id="sitesTbody"></tbody>
+            </table>
           </div>
+          <p class="note" aria-live="polite"><span class="live"></span><span id="feedNote">Connecting…</span></p>
         </div>
       </div>
+    </section>
 
-      <div class="panel">
-        <div class="map-head">
-          <div>
-            <h2>Alert log</h2>
-            <p class="panel-sub" style="margin-bottom:0;">Every dispatch, with per-recipient delivery status.</p>
+    <!-- MONITORING -->
+    <section id="viewMonitor" class="view">
+      <div class="cols c-mon">
+        <div class="panel glass" id="unitPanel"></div>
+        <div class="panel glass">
+          <h2 style="margin-bottom:10px">What this dashboard does</h2>
+          <ul class="list">
+            <li>Real-time monitoring of river flow, flood risk and plastic load.</li>
+            <li>Predictive, flood-based deployment scheduling across units.</li>
+            <li>Remote ram control, alerts and maintenance scheduling.</li>
+            <li>Automatic Telegram and SMS dispatch to Barangay and LGU DRRMO duty officers.</li>
+            <li>Shared data feed for LGU disaster-response teams and DENR.</li>
+          </ul>
+          <h2 style="margin-bottom:10px">Impact</h2>
+          <p class="impact"><b>LGUs and communities</b>Earlier flood warnings and clearer waterways in high-risk barangays.</p>
+          <p class="impact"><b>Economic</b>Revenue recovered from baled plastic sold to recyclers.</p>
+          <p class="impact"><b>Environmental</b>Less flood-linked plastic blockage and less ocean-bound leakage.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALERTS -->
+    <section id="viewAlerts" class="view">
+      <div class="cols c-al">
+        <div class="stack">
+          <div class="panel glass">
+            <div class="head">
+              <div><h2>Dispatch thresholds</h2><p class="sub">A site that breaches either threshold triggers an automatic notification.</p></div>
+              <span class="lock" title="Set in code, not editable from the dashboard"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 1 1 7 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Locked</span>
+            </div>
+            <div class="chans" id="chanRow"></div>
+            <div class="cfg" id="cfgReadout"></div>
+            <p class="hint">Thresholds are safety constants defined in <code>main.py</code> and served read-only, so nobody can raise a limit during an event. Changing one is a reviewed code change.</p>
+            <p class="hint">Dry-run channels still record and display alerts, but nothing leaves the server until <code>TELEGRAM_BOT_TOKEN</code> or the Twilio variables are set in <code>.env</code>.</p>
           </div>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <select id="testSite" style="background:var(--bg-alt); color:var(--text); border:1px solid var(--line-strong); border-radius:7px; padding:7px 10px; font-family:'Inter'; font-size:12.5px;"></select>
-            <button class="deploy-btn" id="testBtn">Send drill</button>
+
+          <div class="panel glass">
+            <h2>Notification recipients</h2>
+            <p class="sub" style="margin-bottom:8px">Barangay and LGU DRRMO duty officers on the escalation list.</p>
+            <div id="rcptList"></div>
+            <div class="add">
+              <div class="row2">
+                <div class="field"><label for="newName">Name</label><input id="newName" placeholder="Taysan MDRRMO Duty Officer" autocomplete="off"></div>
+                <div class="field"><label for="newOrg">Office</label><input id="newOrg" placeholder="Taysan MDRRMO" autocomplete="off"></div>
+              </div>
+              <div class="row2">
+                <div class="field"><label for="newChannel">Channel</label><select id="newChannel"><option value="telegram">Telegram</option><option value="sms">SMS (Twilio)</option><option value="webhook">Webhook</option></select></div>
+                <div class="field"><label for="newTarget">Chat ID, number or URL</label><input id="newTarget" placeholder="-1001234567890" autocomplete="off"></div>
+              </div>
+              <button class="deploy-btn primary" id="addRcptBtn">Add recipient</button>
+            </div>
           </div>
         </div>
-        <div id="alertLog" style="margin-top:18px;"></div>
+
+        <div class="panel glass">
+          <div class="head">
+            <div><h2>Alert log</h2><p class="sub">Every dispatch, with per-recipient delivery status.</p></div>
+            <div style="display:flex;gap:8px;align-items:center"><select id="testSite" class="pick" aria-label="Site for drill"></select><button class="deploy-btn" id="testBtn">Send drill</button></div>
+          </div>
+          <div id="alertLog"></div>
+        </div>
       </div>
+    </section>
+  </main>
+</div>
 
-    </div>
-  </section>
-
-</main>
-
-<footer>Live data from the NetZero Wave backend. Map tiles &copy; Esri.</footer>
+<footer>Live data from the NetZero Wave backend &middot; Map tiles &copy; Esri</footer>
+<div id="toasts" aria-live="polite"></div>
 
 <script>
-/* When FastAPI serves this page (http://127.0.0.1:8000) the API is same-origin, so no
-   prefix is needed. If the page is opened straight from disk (file://) or from another
-   dev server such as VS Code Live Server (port 5500), point at the FastAPI server instead. */
-const API_BASE = (location.protocol === 'file:' || (location.port && location.port !== '8000'))
-  ? 'http://127.0.0.1:8000'
-  : '';
+/* Same-origin when FastAPI serves this page; otherwise (file://, Live Server) talk to FastAPI directly. */
+const API_BASE=(location.protocol==='file:'||(location.port&&location.port!=='8000'))?'http://127.0.0.1:8000':'';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const STATUS_COLOR={High:'#ff6a5f',Moderate:'#ffb340',Low:'#3ddc97'};
+const clamp=v=>Math.max(0,Math.min(100,v||0));
+let sites=[],units=[],deployedUnit=null,alertsData=[],recipients=[],config=null,focusedSite=null,currentTab='siting',unseen=0,lastSync=0,online=null;
+const loaded={sites:false,units:false,alerts:false,rcpt:false},seen=new Set(),openMsgs=new Set(),cache={};
 
-let sites = [];
-let deployedUnit = null;
-let units = [];
-let backendReachable = true;
-let alertsData = [];
-let recipients = [];
-let config = null;
-let focusedSite = null;
-let seenAlertIds = new Set();
-let unseenCount = 0;
-let currentTab = 'siting';
+/* ---------- helpers ---------- */
+async function api(path,method='GET',body){
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),8000);
+  try{
+    const r=await fetch(API_BASE+path,{method,signal:ctl.signal,headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined});
+    if(!r.ok)throw new Error(`${path} → ${r.status}`);
+    return r.status===204?null:await r.json();
+  }finally{clearTimeout(t)}
+}
+const apiGet=p=>api(p),apiPost=(p,b)=>api(p,'POST',b);
+/* only touch the DOM when the markup changed, so open menus, <details> and hover states survive polling */
+function put(el,html){if(cache[el.id]===html)return false;cache[el.id]=html;el.innerHTML=html;return true}
+const sk=(h,w='100%',m=0)=>`<div class="sk" style="height:${h}px;width:${w};margin-bottom:${m}px"></div>`;
+const WAVE='<svg width="22" height="22" viewBox="0 0 26 26" fill="none" aria-hidden="true"><path d="M2 15c2.2 0 2.2-4 4.4-4s2.2 4 4.4 4 2.2-4 4.4-4 2.2 4 4.4 4 2.2-4 4.4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const empty=(t,p,a='')=>`<div class="empty"><span class="ic">${WAVE}</span><b>${t}</b><p>${p}</p>${a}</div>`;
+function toast(msg,kind=''){
+  const t=document.createElement('div');t.className='toast glass '+kind;t.textContent=msg;$('toasts').append(t);
+  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),400)},3600);
+}
+async function withBusy(btn,fn){
+  if(btn){btn.classList.add('busy');btn.disabled=true}
+  try{return await fn()}finally{if(btn&&btn.isConnected){btn.classList.remove('busy');btn.disabled=false}}
+}
+function timeAgo(iso){
+  const s=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/1000));
+  if(s<60)return `${s}s ago`;if(s<3600)return `${Math.round(s/60)}m ago`;if(s<86400)return `${Math.round(s/3600)}h ago`;
+  return new Date(iso).toLocaleString();
+}
+const isDeployed=s=>s.deployed||(deployedUnit&&deployedUnit.site_id===s.id);
+const meter=(label,pct,extra='',bg='')=>`<div class="m"><span>${label}${extra}</span><div class="bar"><i style="width:${clamp(pct)}%;${bg?`background:${bg}`:''}"></i></div></div>`;
 
-/* ---------- api helpers ---------- */
-async function apiGet(path){
-  const res = await fetch(API_BASE + path);
-  if (!res.ok) throw new Error(`${path} → ${res.status}`);
-  return res.json();
+function paintFeed(){
+  const s=Math.round((Date.now()-lastSync)/1000);
+  const txt=online===null?'Connecting…':online?`Live · synced ${s}s ago`:'Offline · retrying every 3s';
+  $('feedNote').textContent=txt;$('navSync').textContent=online?`Live · ${s}s`:online===null?'Connecting…':'Offline';
+  document.body.classList.toggle('offline',online===false);
 }
-async function apiSend(path, method, body){
-  const res = await fetch(API_BASE + path, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined
-  });
-  if (!res.ok) throw new Error(`${path} → ${res.status}`);
-  return res.status === 204 ? null : res.json();
+function tickTimes(){document.querySelectorAll('time[data-ts]').forEach(t=>{t.textContent=timeAgo(t.dataset.ts)});paintFeed()}
+function setOnline(ok){
+  if(ok)lastSync=Date.now();
+  if(ok!==online){if(online!==null)toast(ok?'Back online. Live data resumed.':'Connection to the backend lost. Retrying every 3 seconds.',ok?'':'err');online=ok}
+  paintFeed();
 }
-const apiPost = (p, b) => apiSend(p, 'POST', b);
-
-function setFeedNote(text, ok){
-  document.getElementById('feedNote').textContent = text;
-  document.querySelector('.live-dot').style.background = ok ? 'var(--green)' : 'var(--red)';
+function kpis(){
+  $('kSites').textContent=loaded.sites?sites.length:'–';
+  $('kUnits').textContent=loaded.units?units.length:'–';
+  $('kOpen').textContent=loaded.alerts?alertsData.filter(a=>!a.acknowledged).length:'–';
 }
-function esc(s){
-  return String(s ?? '').replace(/[&<>"']/g, c =>
-    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-const STATUS_COLOR = { High:'#f0655a', Moderate:'#f5a623', Low:'#34d399' };
 
 /* =========================================================
-   LEAFLET GIS MAP
+   MAP
    ========================================================= */
-let map = null;
-let siteLayer = null;
-let riverLayer = null;
-const markers = {};       // site_id -> circleMarker
-const haloes  = {};       // site_id -> deployed-unit ring
-let mapBounds = null;
-let riverBounds = null;   // set once /api/geo/rivers loads
-let boundsFitted = false; // true after the first fit that included the sites
-
-/* Fit the view to the river line AND every site, so far-flung sites
-   (e.g. the upland LGUs) are never cut off by a river-only fit. */
+let map=null,siteLayer=null,riverLayer=null,riverBounds=null,boundsFitted=false;
+const markers={},haloes={};
 function fitAll(){
-  if (!map) return;
-  const pts = [];
-  if (riverBounds && riverBounds.isValid()){
-    pts.push(riverBounds.getSouthWest(), riverBounds.getNorthEast());
-  }
-  sites.forEach(s => { if (s.lat != null && s.lon != null) pts.push([s.lat, s.lon]); });
-  if (!pts.length) return;
-  mapBounds = L.latLngBounds(pts).pad(0.12);
-  map.fitBounds(mapBounds);
-  if (sites.length) boundsFitted = true;
+  if(!map)return;
+  const pts=[];
+  if(riverBounds&&riverBounds.isValid())pts.push(riverBounds.getSouthWest(),riverBounds.getNorthEast());
+  sites.forEach(s=>{if(s.lat!=null&&s.lon!=null)pts.push([s.lat,s.lon])});
+  if(!pts.length)return;
+  map.fitBounds(L.latLngBounds(pts).pad(.12));
+  if(sites.length)boundsFitted=true;
 }
-
 function initMap(){
-  // Starting view over the Calumpang watershed; fitAll() refines it once data loads
-  map = L.map('map', { zoomControl: true, scrollWheelZoom: false })
-         .setView([13.83, 121.12], 10);
+  map=L.map('map',{zoomControl:false,scrollWheelZoom:false}).setView([13.83,121.12],10);
+  L.control.zoom({position:'topright'}).addTo(map);
+  map.createPane('halo').style.zIndex=390;
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles &copy; Esri',maxZoom:16}).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,opacity:.9}).addTo(map);
+  riverLayer=L.layerGroup().addTo(map);siteLayer=L.layerGroup().addTo(map);
+  map.on('click',()=>map.scrollWheelZoom.enable());map.on('mouseout',()=>map.scrollWheelZoom.disable());
 
-  // Esri dark canvas — free, no API key required
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ', maxZoom: 16
-  }).addTo(map);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 16, opacity: 0.9
-  }).addTo(map);
-
-  riverLayer = L.layerGroup().addTo(map);
-  siteLayer  = L.layerGroup().addTo(map);
-
-  apiGet('/api/geo/rivers').then(geo => {
-    const line = L.geoJSON(geo, {
-      style: { color:'#2f6fd0', weight:4, opacity:0.75, lineCap:'round', lineJoin:'round' }
-    });
-    const glow = L.geoJSON(geo, {
-      style: { color:'#3d7bff', weight:11, opacity:0.13, lineCap:'round' }
-    });
-    glow.addTo(riverLayer); line.addTo(riverLayer);
-    line.eachLayer(l => {
-      const nm = l.feature && l.feature.properties && l.feature.properties.name;
-      if (nm) l.bindTooltip(nm, { sticky:true });
-    });
-
-    // be upfront on the map when the line is only the schematic placeholder
-    const approx = (geo.features || []).some(f => f.properties && f.properties.approximate);
-    document.getElementById('riverLegend').textContent =
-      approx ? 'River centreline (schematic)' : 'River centreline';
-
-    const b = line.getBounds();
-    riverBounds = b.isValid() ? b : null;
-    fitAll();
-  }).catch(() => {});
-
-  document.getElementById('fitBtn').addEventListener('click', () => {
-    fitAll();
-    focusedSite = null;
-    renderSites();
-  });
+  apiGet('/api/geo/rivers').then(geo=>{
+    const line=L.geoJSON(geo,{style:{color:'#2f6fd0',weight:4,opacity:.8,lineCap:'round',lineJoin:'round'}});
+    L.geoJSON(geo,{style:{color:'#4d8dff',weight:12,opacity:.14,lineCap:'round'}}).addTo(riverLayer);
+    line.addTo(riverLayer);
+    L.geoJSON(geo,{interactive:false,style:{color:'#bfe3ff',weight:1.5,opacity:.6,dashArray:'1 12',lineCap:'round',className:'river-flow'}}).addTo(riverLayer);
+    line.eachLayer(l=>{const nm=l.feature&&l.feature.properties&&l.feature.properties.name;if(nm)l.bindTooltip(nm,{sticky:true})});
+    const approx=(geo.features||[]).some(f=>f.properties&&f.properties.approximate);
+    $('riverLegend').textContent=approx?'River centreline (schematic)':'River centreline';
+    const b=line.getBounds();riverBounds=b.isValid()?b:null;fitAll();
+  }).catch(()=>{});
+  $('fitBtn').addEventListener('click',()=>{fitAll();focusedSite=null;renderSites()});
 }
-
 function popupHtml(s){
-  const deployed = s.deployed || (deployedUnit && deployedUnit.site_id === s.id);
-  return `
-    <div class="pop-title">${esc(s.name)}</div>
-    <div class="pop-sub">${esc(s.barangay || '')}</div>
-    <div class="pop-row"><span>Status</span><b style="color:${STATUS_COLOR[s.status]}">${esc(s.status)}</b></div>
-    <div class="pop-row"><span>Flow velocity</span><b class="num">${s.flow.toFixed(2)} m/s</b></div>
-    <div class="pop-row"><span>Flood proximity</span><b class="num">${Math.round(s.flood)}/100</b></div>
-    <div class="pop-row"><span>Debris density</span><b class="num">${Math.round(s.debris)}%</b></div>
-    <div class="pop-row"><span>Composite score</span><b class="num">${s.score}</b></div>
-    <div class="pop-row"><span>Coordinates</span><b class="num">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</b></div>
-    <div class="pop-actions">
-      <button class="deploy-btn ${deployed ? '' : 'primary'}" ${deployed ? 'disabled' : ''}
-              onclick="deploy('${s.id}')">${deployed ? 'Buoy active' : 'Deploy here'}</button>
-      <button class="deploy-btn danger" onclick="sendDrill('${s.id}')">Test alert</button>
-    </div>`;
+  const dep=isDeployed(s),c=STATUS_COLOR[s.status]||STATUS_COLOR.Low,id=esc(s.id);
+  return `<div class="pop-h"><i style="background:${c};box-shadow:0 0 12px ${c}"></i><div><b>${esc(s.name)}</b><small>${esc(s.barangay||'Calumpang watershed')} · ${esc(s.status)}</small></div></div>
+  <div class="pop-g"><div><small>Flow velocity</small><b>${s.flow.toFixed(2)} m/s</b></div><div><small>Flood proximity</small><b>${Math.round(s.flood)}/100</b></div><div><small>Debris density</small><b>${Math.round(s.debris)}%</b></div><div><small>Composite score</small><b>${s.score}</b></div></div>
+  <div class="pop-c">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</div>
+  <div class="ctx"><button data-act="deploy" data-id="${id}" ${dep?'disabled':''}>${dep?'Buoy active here':'Deploy buoy here'}</button><button class="danger" data-act="drill" data-id="${id}">Send test alert</button></div>`;
 }
-
+const radarIcon=c=>L.divIcon({className:'radar',html:`<div class="rw" style="--c:${c}"><i></i><i></i></div>`,iconSize:[64,64],iconAnchor:[32,32]});
 function renderMap(){
-  if (!map || !siteLayer) return;
-
-  sites.forEach(s => {
-    if (s.lat == null || s.lon == null) return;
-    const deployed = s.deployed || (deployedUnit && deployedUnit.site_id === s.id);
-    const color = STATUS_COLOR[s.status] || STATUS_COLOR.Low;
-
-    if (!markers[s.id]){
-      markers[s.id] = L.circleMarker([s.lat, s.lon], {
-        radius: 8, weight: 2, color: '#0b0f16', fillColor: color, fillOpacity: 0.95
-      }).addTo(siteLayer);
-      markers[s.id].on('click', () => { focusedSite = s.id; renderSites(); });
+  if(!map||!siteLayer)return;
+  sites.forEach(s=>{
+    if(s.lat==null||s.lon==null)return;
+    const c=STATUS_COLOR[s.status]||STATUS_COLOR.Low,id=s.id,dep=isDeployed(s);
+    if(!markers[id]){
+      markers[id]=L.circleMarker([s.lat,s.lon],{radius:8,weight:2,color:'rgba(255,255,255,.85)',fillColor:c,fillOpacity:.95}).addTo(siteLayer);
+      markers[id].on('click',()=>{focusedSite=id;renderSites()}).on('mouseover',e=>e.target.setStyle({radius:10})).on('mouseout',e=>e.target.setStyle({radius:8}));
     }
-    markers[s.id].setStyle({ fillColor: color });
-    markers[s.id].setLatLng([s.lat, s.lon]);
-    markers[s.id].bindPopup(popupHtml(s));
-    markers[s.id].bindTooltip(
-      `${s.name} · ${s.flow.toFixed(1)} m/s · flood ${Math.round(s.flood)}`,
-      { direction:'auto', offset:[0,-8], opacity:0.95 }
-    );
-
-    // ring around sites with an active buoy / deployed unit
-    if (deployed && !haloes[s.id]){
-      haloes[s.id] = L.circleMarker([s.lat, s.lon], {
-        radius: 15, weight: 2, color: '#3d7bff', opacity: 0.85, fill: false, className: 'pulse-marker'
-      }).addTo(siteLayer);
-      haloes[s.id].bringToBack();
-    } else if (!deployed && haloes[s.id]){
-      siteLayer.removeLayer(haloes[s.id]);
-      delete haloes[s.id];
-    }
-    if (haloes[s.id]) haloes[s.id].setStyle({ color: s.status === 'Low' ? '#3d7bff' : color });
+    markers[id].setStyle({fillColor:c});markers[id].setLatLng([s.lat,s.lon]);
+    markers[id].bindPopup(popupHtml(s),{closeButton:true,offset:[0,-4]});
+    markers[id].bindTooltip(`${esc(s.name)} · ${s.flow.toFixed(1)} m/s · flood ${Math.round(s.flood)}`,{direction:'top',offset:[0,-10],opacity:1});
+    const hc=s.status==='Low'?'#4d8dff':c;
+    if(dep){
+      if(!haloes[id])haloes[id]={m:L.marker([s.lat,s.lon],{icon:radarIcon(hc),interactive:false,keyboard:false,pane:'halo'}).addTo(siteLayer),c:hc};
+      else if(haloes[id].c!==hc){haloes[id].m.setIcon(radarIcon(hc));haloes[id].c=hc}
+    }else if(haloes[id]){siteLayer.removeLayer(haloes[id].m);delete haloes[id]}
   });
-
-  // first time the sites are on the map, frame them (plus the river if loaded)
-  if (!boundsFitted && sites.length) fitAll();
+  if(!boundsFitted&&sites.length)fitAll();
 }
-
-function focusOnMap(siteId){
-  const s = sites.find(x => x.id === siteId);
-  if (!s || !map || s.lat == null) return;
-  focusedSite = siteId;
-  map.setView([s.lat, s.lon], 14, { animate: true });
-  if (markers[siteId]) markers[siteId].openPopup();
+function focusOnMap(id){
+  const s=sites.find(x=>x.id===id);
+  if(!s||!map||s.lat==null)return;
+  focusedSite=id;
+  $('map').scrollIntoView({block:'nearest',behavior:'smooth'});
+  map.setView([s.lat,s.lon],14,{animate:true});
+  markers[id]&&markers[id].openPopup();
   renderSites();
 }
 
 /* =========================================================
-   SITE SELECTION TABLE
+   SITE TABLE
    ========================================================= */
 function renderSites(){
-  const tbody = document.getElementById('sitesTbody');
-
-  if (!backendReachable){
-    tbody.innerHTML = `<tr><td colspan="8" style="color:var(--text-dim); padding:20px 12px;">
-      Can't reach the backend API at ${esc(API_BASE || location.origin)}. Make sure the server is running
-      (<code>uvicorn main:app --reload</code>), then refresh.
-    </td></tr>`;
+  const tb=$('sitesTbody');kpis();
+  if(!loaded.sites){
+    if(online===false)put(tb,`<tr><td colspan="8">${empty('Can’t reach the backend',`Nothing is responding at ${esc(API_BASE||location.origin)}. Start the server with <code>uvicorn main:app --reload</code>; this page keeps retrying.`,'<button class="deploy-btn primary" data-act="retry">Retry now</button>')}</td></tr>`);
+    else put(tb,Array(5).fill(`<tr><td colspan="8" style="padding:6px">${sk(48)}</td></tr>`).join(''));
     return;
   }
-
-  tbody.innerHTML = sites.map((s, i) => {
-    const isTop = i === 0;
-    const already = s.deployed || (deployedUnit && deployedUnit.site_id === s.id);
-    const inRange = s.flow >= 0.5 && s.flow <= 3.5;
-    return `
-      <tr class="${focusedSite === s.id ? 'focused' : ''}">
-        <td class="rank">${i+1}</td>
-        <td class="site-name" data-focus="${s.id}" title="Show on map">
-          <span class="rec-dot" style="background:${STATUS_COLOR[s.status]}"></span>
-          <span>${esc(s.name)}<small>${isTop ? 'Recommended · ' : ''}${esc(s.barangay || '')}</small></span>
-        </td>
-        <td class="num">${s.flow.toFixed(1)} m/s <span class="fit ${inRange ? 'ok':'watch'}">${inRange ? 'in range':'watch'}</span></td>
-        <td class="num">${Math.round(s.debris)}%</td>
-        <td class="num">${Math.round(s.flood)}</td>
-        <td class="num">${Math.round(s.solar)}</td>
-        <td class="num">${s.score}
-          <div class="score-track"><i style="width:${s.score}%"></i></div>
-        </td>
-        <td>
-          <button class="deploy-btn ${isTop && !already ? 'primary' : ''}" ${already ? 'disabled' : ''} data-site="${s.id}">
-            ${already ? 'Deployed' : 'Deploy'}
-          </button>
-        </td>
-      </tr>`;
-  }).join('');
-
-  tbody.querySelectorAll('.deploy-btn').forEach(btn => {
-    btn.addEventListener('click', () => { if (!btn.disabled) deploy(btn.dataset.site); });
-  });
-  tbody.querySelectorAll('[data-focus]').forEach(cell => {
-    cell.addEventListener('click', () => focusOnMap(cell.dataset.focus));
-  });
-
+  if(!sites.length){put(tb,`<tr><td colspan="8">${empty('No candidate sites yet','Buoys will appear here once the backend reports its first readings.')}</td></tr>`);return}
+  put(tb,sites.map((s,i)=>{
+    const top=i===0,dep=isDeployed(s),inR=s.flow>=.5&&s.flow<=3.5,c=STATUS_COLOR[s.status]||STATUS_COLOR.Low,id=esc(s.id);
+    return `<tr class="${focusedSite===s.id?'focus':''}">
+      <td class="rank">${i+1}</td>
+      <td><button class="site" data-act="focus" data-id="${id}" title="Show on map"><i class="dot" style="--c:${c}"></i><span><b>${esc(s.name)}</b><small>${top?'Recommended · ':''}${esc(s.barangay||'')}</small></span></button></td>
+      <td>${meter(`${s.flow.toFixed(1)} m/s`,s.flow/3.5*100,` <em class="fit ${inR?'ok':'watch'}">${inR?'in range':'watch'}</em>`)}</td>
+      <td class="hm">${meter(`${Math.round(s.debris)}%`,s.debris)}</td>
+      <td>${meter(Math.round(s.flood),s.flood,'',s.flood>=70?'var(--red)':s.flood>=40?'var(--amber)':'')}</td>
+      <td class="hm">${meter(Math.round(s.solar),s.solar)}</td>
+      <td>${meter(`<b>${s.score}</b>`,s.score)}</td>
+      <td><button class="deploy-btn ${top&&!dep?'primary':''}" ${dep?'disabled':''} data-act="deploy" data-id="${id}">${dep?'Deployed':'Deploy'}</button></td>
+    </tr>`;
+  }).join(''));
   renderMap();
 }
-
-async function deploy(siteId){
-  try {
-    deployedUnit = await apiPost(`/api/deploy/${siteId}`);
-    await refresh();
-    renderUnitPanel();
-    switchTab('monitor');
-  } catch (err){
-    console.error(err);
-    setFeedNote('Deploy failed — check backend status.', false);
-  }
+async function deploy(id,btn){
+  await withBusy(btn,async()=>{
+    try{
+      deployedUnit=await apiPost(`/api/deploy/${id}`);
+      map&&map.closePopup();
+      await refresh();switchTab('monitor');
+      toast(`Buoy deployed at ${deployedUnit?deployedUnit.site_name:'the selected site'}.`);
+    }catch(err){console.error(err);toast('Deployment failed. Check that the backend is running, then try again.','err')}
+  });
 }
-window.deploy = deploy;
+window.deploy=deploy;
 
 /* =========================================================
    MONITORING
    ========================================================= */
 function renderUnitPanel(){
-  const panel = document.getElementById('unitPanel');
-
-  if (!deployedUnit){
-    panel.innerHTML = `
-      <h2>No unit deployed yet</h2>
-      <div class="no-unit">
-        <p>Deploy a storm baler from Site selection to see its live feed here.</p>
-        <button id="goToSitingBtn">Go to site selection</button>
-      </div>`;
-    document.getElementById('goToSitingBtn').addEventListener('click', () => switchTab('siting'));
-    return;
-  }
-
-  const u = deployedUnit;
-  const level = u.flood_alert.toLowerCase(); // low | moderate | high
-
-  panel.innerHTML = `
-    <div class="unit-id">Unit ${esc(u.id)}</div>
-    <div class="unit-loc">${esc(u.site_name)}${u.lat != null ? ` · ${u.lat.toFixed(4)}, ${u.lon.toFixed(4)}` : ''}</div>
-    <div class="metric-grid">
-      <div class="metric"><div class="label">River flow</div><div class="value num">${u.flow.toFixed(1)} <span style="font-size:15px; color:var(--text-dim);">m/s</span></div></div>
-      <div class="metric"><div class="label">Flood alert</div><div class="value ${level}"><span class="status-dot ${level}"></span>${esc(u.flood_alert)}</div></div>
-      <div class="metric"><div class="label">Plastic load</div><div class="value num">${Math.round(u.plastic_load)}%</div></div>
-      <div class="metric"><div class="label">Bales produced (24h)</div><div class="value num">${u.bales}</div></div>
+  const p=$('unitPanel');
+  if(document.activeElement&&document.activeElement.id==='unitSwitcher')return;
+  if(!loaded.units){put(p,sk(24,'40%',10)+sk(14,'60%',22)+`<div class="tiles">${sk(110)+sk(110)+sk(110)+sk(110)}</div>`);return}
+  if(!deployedUnit){put(p,empty('No unit deployed yet','Deploy a storm baler from Site selection to see its live feed here.','<button class="deploy-btn primary" data-act="goSite">Go to site selection</button>'));return}
+  const u=deployedUnit,lv=u.flood_alert,pl=u.plastic_load;
+  put(p,`<div class="unit-id">Unit ${esc(u.id)}</div>
+    <div class="unit-loc">${esc(u.site_name)}${u.lat!=null?` · ${u.lat.toFixed(4)}, ${u.lon.toFixed(4)}`:''}</div>
+    <div class="tiles">
+      <div class="tile"><div class="l">River flow</div><div class="v">${u.flow.toFixed(1)} <small>m/s</small></div><div class="bar"><i style="width:${clamp(u.flow/3.5*100)}%"></i></div></div>
+      <div class="tile"><div class="l">Flood alert</div><div class="v ${esc(lv)}"><i class="dot" style="--c:${STATUS_COLOR[lv]||STATUS_COLOR.Low}"></i>${esc(lv)}</div></div>
+      <div class="tile"><div class="l">Plastic load</div><div class="v">${Math.round(pl)}<small>%</small></div><div class="bar"><i style="width:${clamp(pl)}%;${pl>=80?'background:var(--amber)':''}"></i></div></div>
+      <div class="tile"><div class="l">Bales produced (24h)</div><div class="v">${u.bales}</div></div>
     </div>
-    <p class="sync-note"><span class="live-dot" style="background:var(--green);"></span>Synced with LGU / DRRMO feed · alert dispatch armed</p>
-    <select id="unitSwitcher">
-      ${sites.map(s => `<option value="${s.id}" ${s.id===u.site_id?'selected':''}>${esc(s.name)}</option>`).join('')}
-    </select>
-  `;
-
-  document.getElementById('unitSwitcher').addEventListener('change', (e) => deploy(e.target.value));
+    <p class="sync-note"><span class="live"></span>Synced with LGU / DRRMO feed · alert dispatch armed</p>
+    <select id="unitSwitcher" aria-label="Switch deployed site">${sites.map(s=>`<option value="${esc(s.id)}" ${s.id===u.site_id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`);
 }
 
 /* =========================================================
-   ALERTS CONSOLE
+   ALERTS
    ========================================================= */
-function renderChannels(){
-  const row = document.getElementById('chanRow');
-  if (!config || !config.channels){ row.innerHTML = ''; return; }
-  const labels = { telegram:'Telegram bot', sms:'Twilio SMS', webhook:'DRRMO webhook' };
-  row.innerHTML = Object.entries(config.channels).map(([k, on]) =>
-    `<span class="chan ${on ? 'on' : 'dry'}"><i></i>${labels[k]} — ${on ? 'live' : 'dry-run'}</span>`
-  ).join('');
-}
-
-/* Thresholds are served read-only by the backend — rendered as a
-   static readout, never as an editable form. */
+const CH={telegram:'Telegram bot',sms:'Twilio SMS',webhook:'DRRMO webhook'};
 function renderConfig(){
-  if (!config) return;
-  document.getElementById('cfgReadout').innerHTML = `
-    <div class="row"><span>Automatic dispatch</span><b class="${config.enabled ? 'on' : ''}">${config.enabled ? 'Armed' : 'Disabled'}</b></div>
-    <div class="row"><span>Flood proximity — warning</span><b class="warn num">${config.flood_warning} / 100</b></div>
-    <div class="row"><span>Flood proximity — critical</span><b class="crit num">${config.flood_critical} / 100</b></div>
-    <div class="row"><span>Flow velocity — warning</span><b class="warn num">${config.flow_warning} m/s</b></div>
-    <div class="row"><span>Flow velocity — critical</span><b class="crit num">${config.flow_critical} m/s</b></div>
-    <div class="row"><span>Re-alert cooldown per site</span><b class="num">${config.cooldown_minutes} min</b></div>`;
-  renderChannels();
+  if(!config){put($('chanRow'),'');put($('cfgReadout'),Array(4).fill(sk(34,'100%',8)).join(''));return}
+  put($('chanRow'),Object.entries(config.channels||{}).map(([k,on])=>`<span class="chan ${on?'on':'dry'}"><i></i>${CH[k]||esc(k)} · ${on?'live':'dry-run'}</span>`).join(''));
+  const r=(l,v,c='')=>`<div class="r"><span>${l}</span><b class="${c}">${v}</b></div>`;
+  put($('cfgReadout'),r('Automatic dispatch',config.enabled?'Armed':'Disabled',config.enabled?'on':'')+r('Flood proximity, warning',`${config.flood_warning} / 100`,'warn')+r('Flood proximity, critical',`${config.flood_critical} / 100`,'crit')+r('Flow velocity, warning',`${config.flow_warning} m/s`,'warn')+r('Flow velocity, critical',`${config.flow_critical} m/s`,'crit')+r('Re-alert cooldown per site',`${config.cooldown_minutes} min`));
 }
-
 function renderRecipients(){
-  const box = document.getElementById('rcptList');
-  if (!recipients.length){
-    box.innerHTML = `<p class="empty">No recipients yet. Add a Barangay or DRRMO contact below.</p>`;
-    return;
-  }
-  const label = { telegram:'TELEGRAM', sms:'SMS', webhook:'WEBHOOK' };
-  box.innerHTML = recipients.map(r => `
-    <div class="rcpt">
-      <span class="pill ${r.active ? r.channel : 'off'}">${label[r.channel] || r.channel.toUpperCase()}</span>
-      <span class="who"><b>${esc(r.name)}</b><small>${esc(r.org)}${r.org ? ' · ' : ''}${esc(r.target)}</small></span>
-      <button class="icon-btn" data-toggle="${r.id}">${r.active ? 'Mute' : 'Enable'}</button>
-      <button class="icon-btn del" data-del="${r.id}">Remove</button>
-    </div>`).join('');
-
-  box.querySelectorAll('[data-toggle]').forEach(b =>
-    b.addEventListener('click', async () => {
-      await apiPost(`/api/recipients/${b.dataset.toggle}/toggle`);
-      recipients = await apiGet('/api/recipients');
-      renderRecipients();
-    }));
-  box.querySelectorAll('[data-del]').forEach(b =>
-    b.addEventListener('click', async () => {
-      await apiSend(`/api/recipients/${b.dataset.del}`, 'DELETE');
-      recipients = await apiGet('/api/recipients');
-      renderRecipients();
-    }));
+  const box=$('rcptList');
+  if(!loaded.rcpt){put(box,sk(46,'100%',8)+sk(46));return}
+  if(!recipients.length){put(box,empty('No recipients yet','Add a Barangay or DRRMO contact below to start receiving dispatches.'));return}
+  put(box,recipients.map(r=>`<div class="rcpt">
+    <span class="pill ${r.active?esc(r.channel):'off'}">${esc((r.channel||'').toUpperCase())}</span>
+    <span class="who"><b>${esc(r.name)}</b><small>${esc(r.org)}${r.org?' · ':''}${esc(r.target)}</small></span>
+    <button class="sw" role="switch" aria-checked="${!!r.active}" aria-label="Notify ${esc(r.name)}" data-act="mute" data-id="${esc(r.id)}"></button>
+    <button class="link" data-act="del" data-id="${esc(r.id)}" aria-label="Remove ${esc(r.name)}">Remove</button>
+  </div>`).join(''));
 }
-
 async function addRecipient(){
-  const name = document.getElementById('newName').value.trim();
-  const target = document.getElementById('newTarget').value.trim();
-  if (!name || !target) return;
-  await apiPost('/api/recipients', {
-    name,
-    org: document.getElementById('newOrg').value.trim(),
-    channel: document.getElementById('newChannel').value,
-    target
+  const f={name:$('newName'),target:$('newTarget'),org:$('newOrg'),channel:$('newChannel')};
+  const name=f.name.value.trim(),target=f.target.value.trim();
+  f.name.classList.toggle('bad',!name);f.target.classList.toggle('bad',!target);
+  if(!name||!target){toast('Enter a name and a chat ID, number or URL.','err');return}
+  await withBusy($('addRcptBtn'),async()=>{
+    try{
+      await apiPost('/api/recipients',{name,org:f.org.value.trim(),channel:f.channel.value,target});
+      f.name.value=f.org.value=f.target.value='';
+      recipients=await apiGet('/api/recipients');renderRecipients();toast(`${name} added to the escalation list.`);
+    }catch(e){console.error(e);toast('Couldn’t add the recipient. Try again.','err')}
   });
-  document.getElementById('newName').value = '';
-  document.getElementById('newOrg').value = '';
-  document.getElementById('newTarget').value = '';
-  recipients = await apiGet('/api/recipients');
-  renderRecipients();
 }
-
-function timeAgo(iso){
-  const then = new Date(iso).getTime();
-  const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
-  if (secs < 60) return `${secs}s ago`;
-  if (secs < 3600) return `${Math.round(secs/60)}m ago`;
-  if (secs < 86400) return `${Math.round(secs/3600)}h ago`;
-  return new Date(iso).toLocaleString();
+async function recipientAction(act,id){
+  try{
+    if(act==='mute')await apiPost(`/api/recipients/${id}/toggle`);else await api(`/api/recipients/${id}`,'DELETE');
+    recipients=await apiGet('/api/recipients');renderRecipients();
+    if(act==='del')toast('Recipient removed.');
+  }catch(e){console.error(e);toast('That change didn’t save. Try again.','err')}
 }
-
 function renderAlerts(){
-  const box = document.getElementById('alertLog');
-  if (!alertsData.length){
-    box.innerHTML = `<p class="empty">No alerts dispatched yet. Thresholds are being evaluated on every sensor tick — or send a drill to test the pipeline.</p>`;
-    return;
-  }
-  box.innerHTML = alertsData.map(a => {
-    const sev = a.severity.toLowerCase();
-    const chips = a.deliveries.length
-      ? a.deliveries.map(d =>
-          `<span class="${d.status}" title="${esc(d.detail || '')}">${esc(d.name)} · ${d.channel} · ${d.status}</span>`).join('')
-      : `<span>no active recipients</span>`;
-    return `
-      <div class="alert-card ${sev} ${a.acknowledged ? 'acked' : ''}">
-        <div class="alert-top">
-          <span class="sev ${sev}">${esc(a.severity)}</span>
-          <span class="alert-site">${esc(a.site_name)}</span>
-          <span class="alert-time">${timeAgo(a.ts)}</span>
-        </div>
-        <p class="alert-reason">${esc(a.reasons.join(' · '))}</p>
-        <div class="deliv">${chips}</div>
-        <details class="msg"><summary>View dispatched message</summary><pre>${esc(a.message)}</pre></details>
-        <div class="alert-foot">
-          <span class="alert-time num">flow ${a.flow.toFixed(2)} m/s · flood ${Math.round(a.flood)}/100</span>
-          ${a.acknowledged
-            ? '<span class="alert-time">Acknowledged</span>'
-            : `<button class="deploy-btn" data-ack="${a.id}">Acknowledge</button>`}
-        </div>
-      </div>`;
-  }).join('');
-
-  box.querySelectorAll('[data-ack]').forEach(b =>
-    b.addEventListener('click', async () => {
-      await apiPost(`/api/alerts/${b.dataset.ack}/ack`);
-      await loadAlerts();
-    }));
+  const box=$('alertLog');kpis();
+  if(!loaded.alerts){put(box,sk(110,'100%',10)+sk(110,'100%',10)+sk(110));return}
+  if(!alertsData.length){put(box,empty('No alerts dispatched yet','Thresholds are checked on every sensor tick. Send a drill to test the full pipeline.'));return}
+  put(box,alertsData.map(a=>{
+    const sev=String(a.severity).toLowerCase();
+    const chips=a.deliveries.length?a.deliveries.map(d=>`<span class="${esc(d.status)}" title="${esc(d.detail||'')}">${esc(d.name)} · ${esc(d.channel)} · ${esc(d.status)}</span>`).join(''):'<span>No active recipients</span>';
+    return `<div class="acard ${sev} ${a.acknowledged?'acked':''}">
+      <div class="atop"><span class="sev ${sev}">${esc(a.severity)}</span><span class="asite">${esc(a.site_name)}</span><time data-ts="${esc(a.ts)}"></time></div>
+      <p class="reason">${esc(a.reasons.join(' · '))}</p>
+      <div class="deliv">${chips}</div>
+      <details class="msg" data-id="${esc(a.id)}" ${openMsgs.has(String(a.id))?'open':''}><summary>View dispatched message</summary><pre>${esc(a.message)}</pre></details>
+      <div class="afoot"><span class="dim">flow ${a.flow.toFixed(2)} m/s · flood ${Math.round(a.flood)}/100</span>
+      ${a.acknowledged?'<span class="dim">Acknowledged</span>':`<button class="deploy-btn" data-act="ack" data-id="${esc(a.id)}">Acknowledge</button>`}</div>
+    </div>`;
+  }).join(''));
+  tickTimes();
 }
-
-function updateBadge(){
-  const badge = document.getElementById('alertBadge');
-  badge.textContent = unseenCount;
-  badge.classList.toggle('hidden', unseenCount === 0);
+function updateBadge(bump){
+  const b=$('alertBadge');b.textContent=unseen>99?'99+':unseen;b.classList.toggle('hidden',!unseen);
+  if(bump){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}
+  document.title=(unseen?`(${unseen}) `:'')+'NetZero Wave · Storm baler operations';moveThumb();
 }
-
 async function loadAlerts(){
-  try {
-    const fresh = await apiGet('/api/alerts?limit=30');
-    fresh.forEach(a => {
-      if (!seenAlertIds.has(a.id)){
-        seenAlertIds.add(a.id);
-        if (currentTab !== 'alerts') unseenCount++;
-      }
-    });
-    alertsData = fresh;
-    updateBadge();
-    if (currentTab === 'alerts') renderAlerts();
-  } catch (err){ /* backend down — poll loop already flags it */ }
+  try{
+    const fresh=await apiGet('/api/alerts?limit=30'),first=!loaded.alerts;let add=0;
+    fresh.forEach(a=>{if(!seen.has(a.id)){seen.add(a.id);if(!first&&currentTab!=='alerts')add++}});
+    alertsData=fresh;loaded.alerts=true;unseen+=add;updateBadge(add>0);
+    if(currentTab==='alerts')renderAlerts();else kpis();
+  }catch(e){/* backend down: the poll loop already reports it */}
 }
-
-async function sendDrill(siteId){
-  try {
-    await apiPost(`/api/alerts/test/${siteId}`);
-    await loadAlerts();
-    switchTab('alerts');
-  } catch (err){ console.error(err); }
+async function sendDrill(id,btn){
+  await withBusy(btn,async()=>{
+    try{await apiPost(`/api/alerts/test/${id}`);await loadAlerts();switchTab('alerts');toast('Drill dispatched. Check the log for delivery status.')}
+    catch(e){console.error(e);toast('The drill didn’t send. Check the backend and try again.','err')}
+  });
 }
-window.sendDrill = sendDrill;
-
+window.sendDrill=sendDrill;
+async function ack(id,btn){
+  await withBusy(btn,async()=>{
+    try{await apiPost(`/api/alerts/${id}/ack`);await loadAlerts();toast('Alert acknowledged.')}
+    catch(e){console.error(e);toast('Couldn’t acknowledge the alert. Try again.','err')}
+  });
+}
 function fillTestSites(){
-  const sel = document.getElementById('testSite');
-  const keep = sel.value;
-  sel.innerHTML = sites.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
-  if (keep) sel.value = keep;
+  const sel=$('testSite'),keep=sel.value;
+  if(put(sel,sites.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join(''))&&keep)sel.value=keep;
 }
 
 /* =========================================================
-   TABS
+   TABS + EVENTS
    ========================================================= */
-function switchTab(which){
-  currentTab = which;
-  document.getElementById('viewSiting').classList.toggle('active', which === 'siting');
-  document.getElementById('viewMonitor').classList.toggle('active', which === 'monitor');
-  document.getElementById('viewAlerts').classList.toggle('active', which === 'alerts');
-  document.getElementById('tabSitingBtn').classList.toggle('active', which === 'siting');
-  document.getElementById('tabMonitorBtn').classList.toggle('active', which === 'monitor');
-  document.getElementById('tabAlertsBtn').classList.toggle('active', which === 'alerts');
-
-  if (which === 'siting' && map) setTimeout(() => map.invalidateSize(), 60);
-  if (which === 'alerts'){ unseenCount = 0; updateBadge(); renderAlerts(); }
+function moveThumb(){
+  const b=document.querySelector('.tabs button.active'),t=$('thumb');
+  if(b){t.style.width=b.offsetWidth+'px';t.style.transform=`translateX(${b.offsetLeft}px)`}
 }
-document.getElementById('tabSitingBtn').addEventListener('click', () => switchTab('siting'));
-document.getElementById('tabMonitorBtn').addEventListener('click', () => switchTab('monitor'));
-document.getElementById('tabAlertsBtn').addEventListener('click', () => switchTab('alerts'));
+function switchTab(which){
+  currentTab=which;
+  const v={siting:'viewSiting',monitor:'viewMonitor',alerts:'viewAlerts'};
+  Object.entries(v).forEach(([k,id])=>$(id).classList.toggle('active',k===which));
+  document.querySelectorAll('.tabs button').forEach(b=>{const on=b.dataset.tab===which;b.classList.toggle('active',on);b.setAttribute('aria-selected',on)});
+  moveThumb();
+  history.replaceState(null,'','#'+which);
+  if(which==='siting'&&map)setTimeout(()=>map.invalidateSize(),60);
+  if(which==='alerts'){unseen=0;updateBadge();renderAlerts()}
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+window.addEventListener('resize',moveThumb);
+document.fonts&&document.fonts.ready.then(moveThumb);
 
-document.getElementById('addRcptBtn').addEventListener('click', addRecipient);
-document.getElementById('testBtn').addEventListener('click', () => {
-  const id = document.getElementById('testSite').value;
-  if (id) sendDrill(id);
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');
+  if(!el||el.disabled)return;
+  const{act,id}=el.dataset;
+  if(act==='deploy')deploy(id,el);
+  else if(act==='drill')sendDrill(id,el);
+  else if(act==='focus')focusOnMap(id);
+  else if(act==='ack')ack(id,el);
+  else if(act==='mute'||act==='del')recipientAction(act,id);
+  else if(act==='retry')refresh();
+  else if(act==='goSite')switchTab('siting');
 });
+document.addEventListener('change',e=>{if(e.target.id==='unitSwitcher')deploy(e.target.value)});
+document.addEventListener('toggle',e=>{const d=e.target;if(d.matches&&d.matches('details.msg'))d.open?openMsgs.add(d.dataset.id):openMsgs.delete(d.dataset.id)},true);
+['newName','newTarget'].forEach(i=>$(i).addEventListener('input',e=>e.target.classList.remove('bad')));
+$('addRcptBtn').addEventListener('click',addRecipient);
+$('testBtn').addEventListener('click',()=>{const id=$('testSite').value;if(id)sendDrill(id,$('testBtn'));else toast('No sites available for a drill yet.','err')});
 
 /* =========================================================
    POLL LOOP
    ========================================================= */
 async function refresh(){
-  try {
-    sites = await apiGet('/api/sites');
-    backendReachable = true;
-    setFeedNote('Live — updated just now', true);
-    renderSites();
-    fillTestSites();
-
-    units = await apiGet('/api/units');
-    if (!deployedUnit && units.length) deployedUnit = units[0];
-    if (deployedUnit){
-      deployedUnit = await apiGet(`/api/units/${deployedUnit.id}`);
-      renderUnitPanel();
-    }
+  try{
+    sites=await apiGet('/api/sites');loaded.sites=true;
+    units=await apiGet('/api/units');loaded.units=true;
+    if(!deployedUnit&&units.length)deployedUnit=units[0];
+    if(deployedUnit)deployedUnit=await apiGet(`/api/units/${deployedUnit.id}`);
+    setOnline(true);fillTestSites();renderSites();renderUnitPanel();
+    if(!config)apiGet('/api/alert-config').then(c=>{config=c;renderConfig()}).catch(()=>{});
+    if(!loaded.rcpt)apiGet('/api/recipients').then(r=>{recipients=r;loaded.rcpt=true;renderRecipients()}).catch(()=>{});
     await loadAlerts();
-  } catch (err){
-    backendReachable = false;
-    setFeedNote('Backend unreachable', false);
-    renderSites();
-  }
+  }catch(err){setOnline(false);renderSites();renderUnitPanel()}
 }
+async function loop(){if(!document.hidden)await refresh();setTimeout(loop,3000)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 
-async function boot(){
+(function boot(){
   initMap();
-  switchTab('siting');
-  renderUnitPanel();
-  try {
-    config = await apiGet('/api/alert-config');
-    renderConfig();
-    recipients = await apiGet('/api/recipients');
-    renderRecipients();
-  } catch (err){ console.error(err); }
-  await refresh();
-  // don't badge the alerts that already existed before this session
-  unseenCount = 0; updateBadge();
-  setInterval(refresh, 3000);
-}
-boot();
+  const h=location.hash.slice(1);
+  switchTab(['siting','monitor','alerts'].includes(h)?h:'siting');
+  renderSites();renderUnitPanel();renderRecipients();renderConfig();renderAlerts();
+  setInterval(tickTimes,1000);
+  loop();
+})();
 </script>
-
 </body>
 </html>
