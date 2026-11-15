@@ -1,7 +1,0 @@
-.env
-*.db
-*.db-wal
-*.db-shm
-__pycache__/
-.pytest_cache/
-requirements.lock
