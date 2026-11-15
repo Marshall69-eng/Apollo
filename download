@@ -1,5 +1,0 @@
-.env
-*.db*
-tests
-__pycache__
-.git
