@@ -1,0 +1,7 @@
+# Version ranges (not exact pins): you get current security fixes. Once the tests pass on your
+# machine, run `pip freeze > requirements.lock` and deploy from that file for reproducible builds.
+fastapi>=0.115.6,<1.0
+uvicorn[standard]>=0.32,<1.0
+httpx>=0.27,<1.0
+python-dotenv>=1.0,<2.0
+pydantic>=2.6,<3.0
