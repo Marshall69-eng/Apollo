@@ -355,8 +355,16 @@ let TOKEN=null,ME=null;
 try{TOKEN=sessionStorage.getItem('nzw_token');ME=JSON.parse(sessionStorage.getItem('nzw_me')||'null')}catch(e){}
 const canOp=()=>!!ME&&(ME.role==='operator'||ME.role==='admin');
 const why=(e,fallback)=>e&&[400,403,429].includes(e.status)?e.message:fallback;
+let loadRivers=()=>{};
 function signOut(msg){
-  try{sessionStorage.removeItem('nzw_token');sessionStorage.removeItem('nzw_me');if(msg)sessionStorage.setItem('nzw_msg',msg)}catch(e){}
+  let recent=false;
+  try{
+    const last=+sessionStorage.getItem('nzw_so')||0;recent=Date.now()-last<5000;
+    sessionStorage.removeItem('nzw_token');sessionStorage.removeItem('nzw_me');sessionStorage.setItem('nzw_so',String(Date.now()));
+    if(msg)sessionStorage.setItem('nzw_msg',msg);
+  }catch(e){}
+  TOKEN=null;ME=null;
+  if(recent){showLogin(msg);return}   // loop breaker: never reload twice in a row
   location.reload();
 }
 async function api(path,method='GET',body){
@@ -364,7 +372,7 @@ async function api(path,method='GET',body){
   try{
     const headers={};if(body)headers['Content-Type']='application/json';if(TOKEN)headers['Authorization']='Bearer '+TOKEN;
     const r=await fetch(API_BASE+path,{method,signal:ctl.signal,headers,body:body?JSON.stringify(body):undefined});
-    if(r.status===401&&path!=='/api/auth/login'){signOut('Your session ended. Please sign in again.');throw new Error('auth')}
+    if(r.status===401&&path!=='/api/auth/login'){if(TOKEN)signOut('Your session ended. Please sign in again.');const e=new Error('auth');e.status=401;throw e}
     if(!r.ok){let d='';try{d=(await r.json()).detail}catch(e){}const err=new Error(typeof d==='string'&&d?d:`${path} → ${r.status}`);err.status=r.status;throw err}
     return r.status===204?null:await r.json();
   }finally{clearTimeout(t)}
@@ -432,7 +440,7 @@ function initMap(){
   riverLayer=L.layerGroup().addTo(map);siteLayer=L.layerGroup().addTo(map);
   map.on('click',()=>map.scrollWheelZoom.enable());map.on('mouseout',()=>map.scrollWheelZoom.disable());
 
-  apiGet('/api/geo/rivers').then(geo=>{
+  loadRivers=()=>apiGet('/api/geo/rivers').then(geo=>{
     const line=L.geoJSON(geo,{style:{color:'#2f6fd0',weight:4,opacity:.8,lineCap:'round',lineJoin:'round'}});
     L.geoJSON(geo,{style:{color:'#4d8dff',weight:12,opacity:.14,lineCap:'round'}}).addTo(riverLayer);
     line.addTo(riverLayer);
@@ -442,6 +450,7 @@ function initMap(){
     $('riverLegend').textContent=approx?'River centreline (schematic)':'River centreline';
     const b=line.getBounds();riverBounds=b.isValid()?b:null;fitAll();
   }).catch(()=>{});
+  if(TOKEN)loadRivers();
   $('fitBtn').addEventListener('click',()=>{fitAll();focusedSite=null;renderSites()});
 }
 function popupHtml(s){
@@ -703,7 +712,7 @@ $('loginForm').addEventListener('submit',async e=>{
       TOKEN=r.token;ME={username:r.username,role:r.role};
       try{sessionStorage.setItem('nzw_token',TOKEN);sessionStorage.setItem('nzw_me',JSON.stringify(ME))}catch(_){}
       $('login').hidden=true;$('lgPass').value='';$('loginErr').textContent='';
-      loaded.rcpt=false;paintUser();renderRecipients();refresh();
+      loaded.rcpt=false;paintUser();renderRecipients();loadRivers();refresh();
     }catch(err){$('loginErr').textContent=[401,429].includes(err.status)?err.message:'Can’t reach the server. Try again.'}
   });
 });
