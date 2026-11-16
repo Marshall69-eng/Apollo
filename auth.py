@@ -56,8 +56,30 @@ def _unb64(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
 
 
+_runtime_secret: Optional[str] = None
+
+
+def load_secret(conn) -> None:
+    """Demo mode without SECRET_KEY: use a random key stored in the database, so several uvicorn
+    workers (or a restart that keeps the DB) all agree. A per-process random key would sign a token
+    in one worker and reject it in the next, bouncing users back to the sign-in page."""
+    global _runtime_secret
+    if settings.SECRET_KEY:
+        return
+    conn.execute("CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+    conn.execute("INSERT OR IGNORE INTO kv (key, value) VALUES ('secret', ?)", (secrets.token_urlsafe(48),))
+    _runtime_secret = conn.execute("SELECT value FROM kv WHERE key='secret'").fetchone()["value"]
+
+
+def _key() -> bytes:
+    k = settings.SECRET_KEY or _runtime_secret
+    if not k:
+        raise RuntimeError("No signing key available: init_db() has not run")
+    return k.encode()
+
+
 def _sign(body: str) -> str:
-    return _b64(hmac.new(settings.SECRET_KEY.encode(), body.encode(), hashlib.sha256).digest())
+    return _b64(hmac.new(_key(), body.encode(), hashlib.sha256).digest())
 
 
 def make_token(username: str, role: str, ttl_seconds: Optional[int] = None) -> str:
@@ -129,7 +151,23 @@ def audit(conn, actor: str, action: str, detail: str = "") -> None:
 
 
 def bootstrap_admin(conn) -> None:
-    """Create the first admin from ADMIN_PASSWORD (mandatory in live mode)."""
+    """Create the first admin from ADMIN_PASSWORD (mandatory in live mode).
+
+    Normally this only runs while there are no users. With RESET_ADMIN_PASSWORD=true the admin account
+    is created, re-enabled and given ADMIN_PASSWORD even if it already exists (lock-out recovery on hosts
+    without a shell, e.g. Render's free tier). Turn the flag off again afterwards."""
+    if settings.RESET_ADMIN_PASSWORD:
+        if len(settings.ADMIN_PASSWORD) < MIN_PASSWORD:
+            raise RuntimeError(f"RESET_ADMIN_PASSWORD needs ADMIN_PASSWORD of at least {MIN_PASSWORD} characters")
+        conn.execute(
+            "INSERT INTO users (username, pw_hash, role, active, created_at) VALUES (?,?,?,1,?) "
+            "ON CONFLICT(username) DO UPDATE SET pw_hash=excluded.pw_hash, role='admin', active=1",
+            (settings.ADMIN_USERNAME, hash_password(settings.ADMIN_PASSWORD), "admin", _now()),
+        )
+        audit(conn, "system", "admin.password_reset", f"{settings.ADMIN_USERNAME} via RESET_ADMIN_PASSWORD")
+        print(f"[startup] '{settings.ADMIN_USERNAME}' password set from ADMIN_PASSWORD (RESET_ADMIN_PASSWORD=true). "
+              "Remove RESET_ADMIN_PASSWORD after you sign in, or every restart will overwrite the password.")
+        return
     if conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()["c"]:
         return
     pw = settings.ADMIN_PASSWORD
