@@ -7,7 +7,6 @@ SIMULATION_MODE (default: true) is the master safety switch:
            are mandatory so the site can't start unauthenticated.
 """
 import os
-import secrets
 from pathlib import Path
 
 try:  # optional convenience
@@ -34,7 +33,9 @@ CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o
 TOKEN_TTL_HOURS = int(os.getenv("TOKEN_TTL_HOURS", "12"))
 PBKDF2_ITERATIONS = int(os.getenv("PBKDF2_ITERATIONS", "600000"))
 ADMIN_USERNAME = (os.getenv("ADMIN_USERNAME", "admin").strip().lower() or "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "password").strip()  # env UIs often add stray spaces/newlines
+# Recovery switch: apply ADMIN_PASSWORD to the admin account at startup even if it already exists.
+RESET_ADMIN_PASSWORD = _flag("RESET_ADMIN_PASSWORD", False)
 
 # A deployed buoy that has not reported for this long is declared OFFLINE.
 STALE_AFTER_SECONDS = int(os.getenv("STALE_AFTER_SECONDS", "30" if SIMULATION_MODE else "900"))
@@ -44,8 +45,9 @@ _secret = os.getenv("SECRET_KEY", "").strip()
 if not _secret:
     if not SIMULATION_MODE:
         raise RuntimeError("SECRET_KEY must be set when SIMULATION_MODE=false (use: python -c \"import secrets;print(secrets.token_urlsafe(48))\")")
-    _secret = secrets.token_urlsafe(48)
-    print("[startup] SECRET_KEY not set; using an ephemeral key (logins reset on restart).")
+    # Demo mode without SECRET_KEY: auth.load_secret() keeps a random key in the database so every
+    # worker process (and every restart that keeps the DB) signs and verifies with the SAME key.
+    _secret = ""
 elif not SIMULATION_MODE and len(_secret) < 32:
     raise RuntimeError("SECRET_KEY must be at least 32 characters when SIMULATION_MODE=false")
 SECRET_KEY = _secret
