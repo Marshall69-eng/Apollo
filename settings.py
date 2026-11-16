@@ -33,7 +33,7 @@ CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o
 TOKEN_TTL_HOURS = int(os.getenv("TOKEN_TTL_HOURS", "12"))
 PBKDF2_ITERATIONS = int(os.getenv("PBKDF2_ITERATIONS", "600000"))
 ADMIN_USERNAME = (os.getenv("ADMIN_USERNAME", "admin").strip().lower() or "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "password").strip()  # env UIs often add stray spaces/newlines
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "adminpassword").strip()  # env UIs often add stray spaces/newlines
 # Recovery switch: apply ADMIN_PASSWORD to the admin account at startup even if it already exists.
 RESET_ADMIN_PASSWORD = _flag("RESET_ADMIN_PASSWORD", False)
 
